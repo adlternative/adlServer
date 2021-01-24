@@ -56,6 +56,9 @@ inline threadPool::threadPool(size_t size) : running_state(true) {
   idlThrNum = size < 1 ? 1 : size;
   for (size_t i = 0; i < idlThrNum; i++) {
     threads.emplace_back([this] {
+      /*
+        TODO:这里可以返回一个线程号 this::thread::get_id()
+      */
       while (this->running_state) {
         std::function<void()> task;
         {
@@ -89,7 +92,11 @@ auto threadPool::addTask(F &&f, Args &&...args)
   if (!running_state.load()) // 线程池 已经停止
     throw std::runtime_error("commit on threadPool is stopped.");
   using RetType = decltype(f(args...));
-  /* 这个地方用了用智能指针指向 packaged_task 之后返回future*/
+  /* 这个地方用智能指针指向packaged_task有什么用呢？
+   *ANSWER:because copying of std::packaged_task is not allowed,
+   *yet “task” needs to be copied into the std::function<void(void)>
+   *closure that’s pushed onto the queue.
+   */
   auto task = std::make_shared<std::packaged_task<RetType()>>(
       std::bind(std::forward<F>(f), std::forward<Args>(args)...));
   std::future<RetType> future = task->get_future(); /* 为调用者提供返回值 */
