@@ -1,3 +1,7 @@
+#ifndef UTILH
+#define UTILH
+
+
 #define CHECK_ERR(msg)                                                         \
   {                                                                            \
     fprintf(stderr, "%s\n", msg);                                              \
@@ -18,3 +22,10 @@
     fprintf(stderr, "error:%s line:%d\n", msg, __LINE__);                      \
     exit(1);                                                                   \
   }
+
+#define LOG_FILE_LINE(msg)                                                     \
+  {                                                                            \
+    fprintf(stderr, "file:%s line:%d msg:%s\n", __FILE__, __LINE__, msg);      \
+    exit(1);                                                                   \
+  }
+#endif

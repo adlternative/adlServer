@@ -6,8 +6,43 @@
 #include <pthread.h>
 
 namespace adl {
+namespace learn_from_muduo {
+/*
+ *WARN:没析构呢
+ */
+/* 多个线程只会初始化一次Singleton<T>，
+ *就是只会执行一次init,之后直接通过这个类的instance
+ *获得全局唯一对象（指定的T类型）
+ *可以有多个不同类型的单例全局对象同时存在
+ */
+template <typename T> class ThreadLocal_Singleton : boost::noncopyable {
+public:
+  static T &instance() {
+    if (!value_)
+      init();
+    return *value_;
+  }
+  ThreadLocal_Singleton() = delete;
+  ~ThreadLocal_Singleton() = delete;
+
+private:
+  static void init() { value_ = new T(); }
+  static pthread_once_t ponce_once;
+  static thread_local T *value_;
+};
+
+template <typename T>
+pthread_once_t ThreadLocal_Singleton<T>::ponce_once =
+    PTHREAD_ONCE_INIT; /* 在头文件中就指定了这个类的static变量的初始化 */
+template <typename T>
+thread_local T *ThreadLocal_Singleton<T>::value_ =
+    NULL; /* value就指向一个NULL */
+} // namespace learn_from_muduo
 
 namespace learn_from_muduo {
+/*
+  WARN:未析构
+ */
 /* 多个线程只会初始化一次Singleton<T>，
  *就是只会执行一次init,之后直接通过这个类的instance
  *获得全局唯一对象（指定的T类型）
@@ -19,10 +54,10 @@ public:
     pthread_once(&ponce_once, &Singleton::init);
     return *value_;
   }
+  Singleton() = delete;
+  ~Singleton() = delete;
 
 private:
-  Singleton();
-  ~Singleton();
   static void init() { value_ = new T(); }
   static pthread_once_t ponce_once;
   static T *value_;
@@ -103,8 +138,8 @@ template <typename T> T *Singleton<T>::getInstance() {
   T *tmp = m_instance.load(std::memory_order_acquire);
   // atomic_thread_fence (std::memory_order_acquire);
   if (tmp == nullptr) {
-
     std::lock_guard<std::mutex> lock(m_mutex);
+    tmp =m_instance.load(std::memory_order_relaxed);
     if (tmp == nullptr) {
       tmp = new T;
       // atomic_thread_fence  (std::memory_order_release);
@@ -114,4 +149,21 @@ template <typename T> T *Singleton<T>::getInstance() {
   return tmp;
 }
 } // namespace learn_from_csdn
+
+namespace learn_from_starkoverflow {
+/* c++11就可以不用考虑这些问题了. */
+template <typename T> class Singleton {
+public:
+  Singleton(Singleton const &) = delete;
+  Singleton &operator=(Singleton const &) = delete;
+
+  static std::shared_ptr<T> instance() {
+    static std::shared_ptr<T> s{new T()};
+    return s;
+  }
+
+  Singleton() = delete;
+  ~Singleton() = delete;
+};
+} // namespace learn_from_starkoverflow
 } // namespace adl
