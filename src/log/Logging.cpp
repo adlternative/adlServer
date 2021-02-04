@@ -15,6 +15,11 @@ const char *LogLevelStr[Logger::NUM_LOG_LEVELS] = {
     "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
 };
 
+void dftOut(const char *str, size_t len) { fwrite(str, 1, len, stdout); }
+void dftFlush() { fflush(stdout); }
+
+Logger::outFunc gOut = dftOut;
+Logger::flushFunc gFlush = dftFlush;
 /* 线程安全的错误函数 */
 const char *strerror_tl(int savedErrno) {
   return strerror_r(savedErrno, t_errnobuf, sizeof t_errnobuf);
@@ -42,30 +47,31 @@ Logger::Logger(const char *filename, size_t line, const char *func,
 }
 
 Logger::~Logger() {
-
-  size_t n;
-
   const logStream::Buffer &buf(ls_.getBuf());
-  size_t sz = buf.size();
-
-  for (;;) {
-    n = fwrite(buf.begin(), 1, sz, stdout);
-    if (n == -1) {
-      if (errno == EINTR) {
-        continue;
-      } else {
-        break;
-      }
-    }
-    break;
-  }
+  // size_t sz = buf.size();
+  gOut(buf.begin(), buf.size());
+  // for (;;) {
+  //   n = fwrite(buf.begin(), 1, sz, stdout);
+  //   if (n == -1) {
+  //     if (errno == EINTR) {
+  //       continue;
+  //     } else {
+  //       break;
+  //     }
+  //   }
+  //   break;
+  // }
   if (level_ == adl::Logger::FATAL) {
-    fflush(stdout);
+    gFlush();
     abort();
   }
 }
 
 void Logger::setglobalLevel(logLevel level) { globalLogLevel = level; }
+
+void Logger::setglobalOutFunc(outFunc func) { gOut = func; }
+
+void Logger::setglobalFlashFunc(flushFunc func) { gFlush = func; }
 
 void Logger::formatTime() {
   auto s = ts_.seconds();

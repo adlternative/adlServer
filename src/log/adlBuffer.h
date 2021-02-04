@@ -22,6 +22,8 @@ public:
   }
   void addlen(size_t len) { setlen(len + len_); }
   void append(const char *buf, size_t len) {
+    if (!len)
+      return;
     assert(len <= avail());
     memcpy(buf_ + len_, buf, len);
     addlen(len);

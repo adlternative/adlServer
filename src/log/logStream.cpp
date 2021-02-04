@@ -1,6 +1,7 @@
 #include "logStream.h"
 #include <iostream>
 namespace adl {
+
 template <typename T> void logStream::formatInteger(T v) {
   auto s = std::to_string(v);
   auto len = s.size();

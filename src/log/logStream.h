@@ -9,7 +9,6 @@ public:
   typedef logStream self;
   typedef adlBuffer<kSmallBuffer> Buffer;
   template <typename T> void formatInteger(T v);
-
   self &operator<<(short);
   self &operator<<(bool);
   self &operator<<(unsigned short);
@@ -27,9 +26,10 @@ public:
   self &operator<<(const unsigned char *);
   self &operator<<(const std::string &);
   self &operator<<(const Buffer &);
-
   Buffer &getBuf() { return buf_; }
   void resetBuffer() { buf_.reset(); }
+  using outFunc = void (*)(const char *str, size_t len);
+  void setGout(outFunc func);
 
 private:
   Buffer buf_;

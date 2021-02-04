@@ -1,16 +1,16 @@
-#ifndef UTILH
-#define UTILH
-
-
+#ifndef UTIL_H
+#define UTIL_H
+#include <cstdio>
+#include <cstdlib>
 #define CHECK_ERR(msg)                                                         \
   {                                                                            \
     fprintf(stderr, "%s\n", msg);                                              \
-    exit(1);                                                                   \
+    ::abort();                                                                 \
   }
 #define PERROR_EXIT(msg)                                                       \
   {                                                                            \
     perror(msg);                                                               \
-    exit(1);                                                                   \
+    ::abort();                                                                 \
   }
 #define CHECK_WARN(msg)                                                        \
   {                                                                            \
@@ -20,12 +20,12 @@
 #define DEBUG_LINE_MSG(msg)                                                    \
   {                                                                            \
     fprintf(stderr, "error:%s line:%d\n", msg, __LINE__);                      \
-    exit(1);                                                                   \
+    ::abort();                                                                 \
   }
 
-#define LOG_FILE_LINE(msg)                                                     \
+#define DIE(msg)                                                               \
   {                                                                            \
     fprintf(stderr, "file:%s line:%d msg:%s\n", __FILE__, __LINE__, msg);      \
-    exit(1);                                                                   \
+    ::abort();                                                                 \
   }
 #endif

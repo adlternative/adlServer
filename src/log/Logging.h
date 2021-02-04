@@ -7,6 +7,9 @@
 namespace adl {
 class Logger {
 public:
+  using outFunc = void (*)(const char *str, size_t len);
+  using flushFunc = void (*)();
+
   enum logLevel {
     TRACE,
     DEBUG,
@@ -21,6 +24,8 @@ public:
   ~Logger();
   logLevel getLevel() { return level_; }
   static void setglobalLevel(logLevel level);
+  static void setglobalOutFunc(outFunc func);
+  static void setglobalFlashFunc(flushFunc func);
   void formatTime();
 
   timeStamp ts_;
@@ -33,9 +38,13 @@ public:
 extern Logger::logLevel globalLogLevel;
 
 #define LOG(level)                                                             \
-  if (adl::Logger::level >= adl::globalLogLevel)                                            \
+  if (adl::Logger::level >= adl::globalLogLevel)                               \
   adl::Logger(__FILE__, __LINE__, __func__,                                    \
-              (adl::Logger::level == adl::Logger::ERROR || adl::Logger::level == adl::Logger::FATAL) ? errno : 0, adl::Logger::level) \
+              (adl::Logger::level == adl::Logger::ERROR ||                     \
+               adl::Logger::level == adl::Logger::FATAL)                       \
+                  ? errno                                                      \
+                  : 0,                                                         \
+              adl::Logger::level)                                              \
       .ls_
 } // namespace adl
 #endif
