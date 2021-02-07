@@ -1,14 +1,23 @@
 #include "asyncLogging.h"
 #include "../util.h"
+#include "Logging.h"
+#include "logFile.h"
 #include "timeStamp.h"
 #include <functional>
 #include <iostream>
 namespace adl {
-asyncLogging::asyncLogging(size_t time)
-    : time_(time), td_(std::bind(&asyncLogging::threadFunc, this)),
-      cur_(new Buffer), prv_(new Buffer) {}
+asyncLogging::asyncLogging(const char *logFileName, size_t writeInterval,
+                           size_t roll_size, size_t flushInterval)
+    : logFileName_(logFileName), writeInterval_(writeInterval),
+      roll_size_(roll_size), flushInterval_(flushInterval),
+      td_(std::bind(&asyncLogging::threadFunc, this)), cur_(new Buffer),
+      prv_(new Buffer) {}
 
-asyncLogging::~asyncLogging() { flush(); }
+asyncLogging::~asyncLogging() {
+  running_ = false;
+  cv_.notify_one();
+  td_.join();
+}
 
 void asyncLogging::append(const char *str, size_t len) {
   if (!running_)
@@ -44,12 +53,20 @@ void asyncLogging::start() {
   f.get();
 }
 
-void asyncLogging::flush() { fflush(stdout); }
-
 void asyncLogging::threadFunc() {
   // 等待start
   while (!running_.load(std::memory_order_acquire))
+    /*
+    TODO:schedule?
+    */
     ;
+  /* 定义日志文件，这里将它设为局部变量可能是因为不希望其他线程访问获取
+    TODO：unique_ptr
+  */
+  logFile file(logFileName_, roll_size_, flushInterval_);
+  Logger::setglobalFlushFunc(std::bind(&logFile::flush, &file));
+  Logger::setglobalOutFunc(std::bind(
+      &logFile::append, &file, std::placeholders::_1, std::placeholders::_2));
   // 表示就绪
   p_.set_value();
   BufferPtr newBuf_1(new Buffer), newBuf_2(new Buffer);
@@ -59,8 +76,8 @@ void asyncLogging::threadFunc() {
     {
       std::unique_lock<std::mutex> u(m_);
       /* 等待超时或者有buf送来 */
-      cv_.wait_for(u, std::chrono::seconds(time_),
-                   [this]() { return !transBufVec_.empty(); });
+      cv_.wait_for(u, std::chrono::seconds(writeInterval_),
+                   [this]() { return !transBufVec_.empty() || !running_; });
       /* 将cur填入 */
       transBufVec_.push_back(std::move(cur_));
       /* 补给cur_,prv */
@@ -83,9 +100,9 @@ void asyncLogging::threadFunc() {
       // TO LOGFILE
       needToWriteBufVec_.resize(2);
     }
-    // fopen("a.log",t);
+
     for (const auto &i : needToWriteBufVec_) {
-      fwrite(i->begin(), 1, i->size(), stdout);
+      file.append(i->begin(), i->size());
     }
     if (needToWriteBufVec_.size() > 2)
       needToWriteBufVec_.resize(2);
@@ -102,9 +119,11 @@ void asyncLogging::threadFunc() {
       needToWriteBufVec_.pop_back();
       newBuf_2->reset();
     }
-    flush();
+    /* 前后端成功交互一次后flush刷新到磁盘 */
+    file.flush();
   }
-  flush();
+  /* 退出时也刷新一次 */
+  file.flush();
 }
 
 } // namespace adl

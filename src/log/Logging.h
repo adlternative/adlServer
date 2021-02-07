@@ -2,13 +2,14 @@
 #define LOGGING_H
 #include "logStream.h"
 #include "timeStamp.h"
+#include <functional>
 #include <string>
 
 namespace adl {
 class Logger {
 public:
-  using outFunc = void (*)(const char *str, size_t len);
-  using flushFunc = void (*)();
+  using outFunc = std::function<void(const char *str, size_t len)>;
+  using flushFunc = std::function<void()>;
 
   enum logLevel {
     TRACE,
@@ -24,8 +25,12 @@ public:
   ~Logger();
   logLevel getLevel() { return level_; }
   static void setglobalLevel(logLevel level);
+
+  static void setglobalFlushFunc(flushFunc func);
   static void setglobalOutFunc(outFunc func);
-  static void setglobalFlashFunc(flushFunc func);
+  static outFunc getglobalOutFunc();
+  static flushFunc getglobalFlushFunc();
+
   void formatTime();
 
   timeStamp ts_;

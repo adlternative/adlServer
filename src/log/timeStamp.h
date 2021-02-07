@@ -23,6 +23,22 @@ public:
   time_t seconds() const { return static_cast<time_t>(ms_ / s2ms_); }
   /* 获取当前时间 */
   static timeStamp now();
+  static std::string getYearToSecondFormatTimeNow() {
+    time_t tt = time(NULL);
+    return getYearToSecondFormatTime(&tt);
+  }
+  static std::string getYearToSecondFormatTime(time_t *t) {
+    if (!t)
+      return std::string();
+    struct tm stm;
+    localtime_r(t, &stm);
+
+    char tmp[32];
+    sprintf(tmp, "%04d-%02d-%02d-%02d-%02d-%02d", 1900 + stm.tm_year,
+            1 + stm.tm_mon, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
+
+    return tmp;
+  }
 
   /* 返回一个非法值：0 */
   static timeStamp invalid() { return timeStamp(); }

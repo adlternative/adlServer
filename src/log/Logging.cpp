@@ -71,7 +71,11 @@ void Logger::setglobalLevel(logLevel level) { globalLogLevel = level; }
 
 void Logger::setglobalOutFunc(outFunc func) { gOut = func; }
 
-void Logger::setglobalFlashFunc(flushFunc func) { gFlush = func; }
+Logger::outFunc Logger::getglobalOutFunc() { return gOut; }
+
+Logger::flushFunc Logger::getglobalFlushFunc() { return gFlush; }
+
+void Logger::setglobalFlushFunc(flushFunc func) { gFlush = func; }
 
 void Logger::formatTime() {
   auto s = ts_.seconds();
