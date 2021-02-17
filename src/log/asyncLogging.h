@@ -39,7 +39,7 @@ private:
   size_t writeInterval_;    /* 前后端交流的最大间隔时间 */
   BufferPtr cur_;           /* 当前的BUF */
   BufferPtr prv_;           /* 预备的缓冲区 */
-  BufferVec transBufVec_;   /* 需要传送的Buf向量 */
+  BufferVec transBufVec_;   /* 需要传送的Buf列表 */
   std::string logFileName_; /* 日志文件名 */
 };
 

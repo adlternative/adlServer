@@ -3,6 +3,7 @@
 #define CURRENTTHREAD_H
 #include "Thread.h"
 namespace adl {
+pid_t gettid();
 namespace CurrentThread {
 extern __thread int t_cachedTid;
 // extern __thread char t_tidString[32];

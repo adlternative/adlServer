@@ -1,7 +1,6 @@
 #include "Logging.h"
-#include <sys/prctl.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
+#include "../base/currentThread.h"
+#include "../util.h"
 #include <thread>
 namespace adl {
 
@@ -23,11 +22,6 @@ Logger::flushFunc gFlush = dftFlush;
 /* 线程安全的错误函数 */
 const char *strerror_tl(int savedErrno) {
   return strerror_r(savedErrno, t_errnobuf, sizeof t_errnobuf);
-}
-
-pid_t gettid() {
-  /* 获得/系统内唯一的线程pid */
-  return static_cast<pid_t>(::syscall(SYS_gettid));
 }
 
 Logger::Logger(const char *filename, size_t line, const char *func,

@@ -6,11 +6,12 @@
 #include <errno.h>
 #include <error.h>
 #include <stdarg.h>
+#include <thread>
 #define NORETURN __attribute__((__noreturn__))
 
 #define CHECK_ERR(msg)                                                         \
   {                                                                            \
-    fprintf(stderr, "%s\n", msg);                                              \
+    fprintf(stderr, "%s", msg);                                                \
     ::abort();                                                                 \
   }
 
@@ -20,22 +21,44 @@
     ::abort();                                                                 \
   }
 
-#define CHECK_WARN(msg)                                                        \
+#define WARN(msg)                                                              \
   {                                                                            \
-    fprintf(stderr, "error:%s\n", msg);                                        \
+    fprintf(stderr, "[WARN]:%s", msg);                                         \
     return -1;                                                                 \
   }
 
 #define DEBUG_LINE_MSG(msg)                                                    \
   {                                                                            \
-    fprintf(stderr, "error:%s line:%d\n", msg, __LINE__);                      \
+    fprintf(stderr, "line:%d, [DEBUG]:%s", __LINE__, msg);                     \
     ::abort();                                                                 \
   }
 
 #define DIE(msg)                                                               \
   {                                                                            \
-    fprintf(stderr, "file:%s line:%d msg:%s\n", __FILE__, __LINE__, msg);      \
+    fprintf(stderr, "[DIE]: file:%s line:%d msg:%s", __FILE__, __LINE__, msg); \
     ::abort();                                                                 \
   }
-#define ERR(fmt, args...) fprintf(stderr, "Error: " fmt, ##args)
+
+/* 非线程安全 */
+#define DIE_WITH_ERRNO_STR(msg)                                                \
+  {                                                                            \
+    fprintf(stderr, "[DIE]: %s %s", msg, strerror(errno));                     \
+    ::abort();                                                                 \
+  }
+#define WARN_WITH_ERRNO_STR(msg)                                               \
+  {                                                                            \
+    fprintf(stderr, "[WARN]: %s %s", msg, strerror(errno));                    \
+    return -1;                                                                 \
+  }
+
+#define ERR(fmt, args...) fprintf(stderr, "[ERR]:" fmt, ##args)
+
+#define ERROR_WITH_ERRNO_STR(msg)                                              \
+  { fprintf(stderr, "[ERROR]: %s %s", msg, strerror(errno)); }
+
+template <typename To, typename From> inline To implicit_cast(From const &f) {
+  return f;
+}
+
+const char *strerror_tl(int savedErrno);
 #endif

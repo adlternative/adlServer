@@ -30,7 +30,7 @@ void asyncLogging::append(const char *str, size_t len) {
   if (cur_->avail() >= len + 1) {
     cur_->append(str, len);
   } else {
-    /* 否则将buf放入传送给后端的向量里面 */
+    /* 否则将buf放入传送给后端的列表里面 */
     transBufVec_.push_back(std::move(cur_));
     /* 如果预留的buf不是空的 */
     if (prv_)
@@ -107,7 +107,7 @@ void asyncLogging::threadFunc() {
     if (needToWriteBufVec_.size() > 2)
       needToWriteBufVec_.resize(2);
     /* 如果newbufs都用完了，
-      用需写缓冲区向量中的最后两个缓冲区填充 */
+      用需写缓冲区列表中的最后两个缓冲区填充 */
     if (!newBuf_1) {
       newBuf_1 = std::move(needToWriteBufVec_.back());
       needToWriteBufVec_.pop_back();
