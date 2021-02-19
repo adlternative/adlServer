@@ -1,21 +1,29 @@
 #include "InetAddress.h"
-#include "socket.h"
+#include "Socket.h"
 #include <cstring>
 namespace adl {
+InetAddress::InetAddress() {
+  explicit_bzero(&addr_, sizeof addr_);
+  addr_.sin_family = AF_INET;
+  in_addr_t ip = INADDR_ANY;
+  addr_.sin_addr.s_addr = htonl(ip);
+  addr_.sin_port = htons(0);
+}
+
 InetAddress::InetAddress(const char *ip, uint16_t port) {
-  bzero(&addr_, sizeof(addr_));
-  sockets::fromIpPort(ip, port, &addr_);
+  explicit_bzero(&addr_, sizeof(addr_));
+  sock::fromIpPort(ip, port, &addr_);
 }
 
 std::string InetAddress::toIp() const {
   char buf[64] = "";
-  sockets::toIp(buf, sizeof buf, getSockAddr());
+  sock::toIp(buf, sizeof buf, getSockAddr());
   return buf;
 }
 
 std::string InetAddress::toIpPort() const {
   char buf[64] = "";
-  sockets::toIpPort(buf, sizeof buf, getSockAddr());
+  sock::toIpPort(buf, sizeof buf, getSockAddr());
   return buf;
 }
 

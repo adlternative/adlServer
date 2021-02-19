@@ -38,7 +38,7 @@ public:
       clear();
     setlen(0);
   }
-  void clear() { bzero(buf_, SIZE); }
+  void clear() { explicit_bzero(buf_, SIZE); }
   size_t size() const { return len_; }
   const char *debugString(bool out_to_std = true) {
     if (!strchr(buf_, '\0'))

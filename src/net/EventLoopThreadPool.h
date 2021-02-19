@@ -12,7 +12,7 @@ class EventLoopThreadPool : boost::noncopyable {
 public:
   typedef std::function<void(EventLoop *)> ThreadInitCallback;
   EventLoopThreadPool(std::shared_ptr<EventLoop> &baseLoop);
-  ~EventLoopThreadPool();
+  ~EventLoopThreadPool() = default;
   std::shared_ptr<EventLoop> getNextLoop();
   // EventLoop* getLoopForHash(size_t hashCode);
   std::vector<std::shared_ptr<EventLoop>> getAllLoops();

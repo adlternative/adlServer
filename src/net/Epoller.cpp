@@ -92,7 +92,7 @@ void Epoller::fillActiveChannels(int numEvents,
 /* epoll_ctl */
 void Epoller::update(int operation, Channel *channel) {
   struct epoll_event event;
-  bzero(&event, sizeof event);
+  explicit_bzero(&event, sizeof event);
   event.events = channel->getEvents();
   event.data.ptr = channel;
   int fd = channel->getFd();

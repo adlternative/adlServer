@@ -1,6 +1,6 @@
 #include "EventLoop.h"
 #include "Channel.h"
-#include "socket.h"
+#include "Socket.h"
 #include <sys/eventfd.h>
 /* SIGPIPE */
 
@@ -62,7 +62,7 @@ void EventLoop::queueInLoop(Functor cb) {
 
 void EventLoop::wakeup() {
   uint64_t one = 1;
-  ssize_t n = sockets::write(wakeupFd_, &one, sizeof one);
+  ssize_t n = sock::write(wakeupFd_, &one, sizeof one);
   if (n != sizeof one) {
     /* log */
   }
@@ -121,7 +121,7 @@ void EventLoop::loop() {
 
 void EventLoop::handleRead() {
   uint64_t one = 1;
-  ssize_t n = sockets::read(wakeupFd_, &one, sizeof one);
+  ssize_t n = sock::read(wakeupFd_, &one, sizeof one);
   if (n != sizeof one) {
     /* Log */
   }
