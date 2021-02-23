@@ -1,10 +1,25 @@
 #include "EventLoopThreadPool.h"
+#include "../util.h"
 using namespace adl;
 
-EventLoopThreadPool::EventLoopThreadPool(std::shared_ptr<EventLoop> &baseLoop)
+EventLoopThreadPool::EventLoopThreadPool(
+    const std::shared_ptr<EventLoop> &baseLoop)
     : baseLoop_(baseLoop) {}
 
-EventLoopThreadPool::~EventLoopThreadPool() {}
+std::shared_ptr<EventLoop> EventLoopThreadPool::getNextLoop() {
+  baseLoop_->assertInLoopThread();
+  assert(started_);
+  std::shared_ptr<EventLoop> loop = baseLoop_;
+  if (!loops_.empty()) {
+    // round-robin
+    loop = loops_[next_];
+    ++next_;
+    if (implicit_cast<size_t>(next_) >= loops_.size()) {
+      next_ = 0;
+    }
+  }
+  return loop;
+}
 
 std::vector<std::shared_ptr<EventLoop>> EventLoopThreadPool::getAllLoops() {
   return loops_;

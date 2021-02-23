@@ -142,6 +142,10 @@ public:
   /* 从一个文件描述符(套接字)读取内容 ，
     无阻塞下 ET 模式 得一次读完*/
   int readFd(int fd, int *savedErrno, bool *closed);
+  void reset() {
+    r_ = 0;
+    w_ = 0;
+  }
 
 private:
   /* 检查缓冲区能否向前移动 */

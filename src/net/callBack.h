@@ -4,6 +4,9 @@
 #include <functional>
 #include <memory>
 namespace adl {
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
 class netBuffer;
 class TcpConnection;
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;

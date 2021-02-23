@@ -2,11 +2,21 @@
 #include "Channel.h"
 #include "EventLoop.h"
 namespace adl {
-TcpConnection::TcpConnection(EventLoop *loop, int sockfd,
+
+/* 默认的消息回调 */
+void defaultMessageCallback(const TcpConnectionPtr &, netBuffer *buf) {
+  buf->reset();
+}
+/* 默认的连接回调 */
+void defaultConnectionCallback(const TcpConnectionPtr &conn) {
+  // LOG_DEBUG << (conn->connected() ? "up" : "down");
+}
+
+TcpConnection::TcpConnection(const std::shared_ptr<EventLoop> &loop, int sockfd,
                              const InetAddress &localAddr,
                              const InetAddress &peerAddr)
     : loop_(loop), state_(kConnecting), socket_(new Socket(sockfd)),
-      channel_(new Channel(loop, sockfd)), localAddr_(localAddr),
+      channel_(new Channel(loop_, sockfd)), localAddr_(localAddr),
       peerAddr_(peerAddr) {
 
   channel_->setReadCallback(std::bind(&TcpConnection::handleRead,
@@ -18,21 +28,45 @@ TcpConnection::TcpConnection(EventLoop *loop, int sockfd,
   socket_->setKeepAlive(true);
 }
 
-TcpConnection::~TcpConnection() { /* log */
+TcpConnection::~TcpConnection() {
+  /* log */
   assert(state_ == kDisconnected);
 }
 
 void TcpConnection::send(const void *message, int len) {
   if (state_ == kConnected) {
-    if (loop_->isInLoopThread()) {
-      sendInLoop(message, len);
-    } else {
-      loop_->runInLoop(
-          std::bind(&TcpConnection::sendInLoop, this, message, len));
-    }
+    void (TcpConnection::*fp)(const void *message, size_t len) =
+        &TcpConnection::sendInLoop;
+
+    loop_->runInLoop(std::bind(fp, this, message, len));
   }
 }
-/* 处理读事件 */
+
+void TcpConnection::shutdown() {
+  if (state_ == kConnected) {
+    setState(kDisconnecting);
+    // FIXME: shared_from_this()?
+    loop_->runInLoop(std::bind(&TcpConnection::shutdownInLoop, this));
+  }
+}
+
+void TcpConnection::forceClose() {
+  // FIXME: use compare and swap
+  if (state_ == kConnected || state_ == kDisconnecting) {
+    setState(kDisconnecting);
+    loop_->queueInLoop(
+        std::bind(&TcpConnection::forceCloseInLoop, shared_from_this()));
+  }
+}
+
+void TcpConnection::forceCloseInLoop() {
+  loop_->assertInLoopThread();
+  if (state_ == kConnected || state_ == kDisconnecting) {
+    // as if we received 0 byte in handleRead();
+    handleClose();
+  }
+}
+/* 处理读事件:ok */
 void TcpConnection::handleRead(/* timeStamp receiveTime */) {
   loop_->assertInLoopThread();
   int savedErrno;
@@ -53,6 +87,7 @@ void TcpConnection::handleRead(/* timeStamp receiveTime */) {
   }
 }
 
+/* 处理写事件:ok */
 void TcpConnection::handleWrite() {
   loop_->assertInLoopThread();
   /* 我们的确是在监听可写事件 */
@@ -75,17 +110,21 @@ void TcpConnection::handleWrite() {
         if (state_ == kDisconnecting) {
           shutdownInLoop();
         }
-      } else {
-        /* 否则现在并不在监听写事件 ，啥事不做*/
-        // LOG
       }
+    } else {
+      /* 写发生了错误 */
+      // LOG
     }
-
   } else {
-    /* 不监听写了? LOG*/
+    /* 否则现在并不在监听写事件 ，啥事不做? LOG*/
   }
 }
 
+/* 处理关闭连接事件
+  QUE::muduo原来比较奇怪，
+  用了一个新的指针去执行
+  connectionCallback_和closeCallback_
+*/
 void TcpConnection::handleClose() {
   loop_->assertInLoopThread();
   assert(state_ == kConnected || state_ == kDisconnecting);
@@ -96,11 +135,15 @@ void TcpConnection::handleClose() {
   closeCallback_(shared_from_this());
 }
 
+/* 处理错误:ok
+  出错的时候通过getSocketError获得套接字上的错误，
+  并将其打印到日志文件中 */
 void TcpConnection::handleError() {
   int err = sock::getSocketError(channel_->getFd());
   // LOG()
 }
 
+/* 在IO loop中发送信息 */
 void TcpConnection::sendInLoop(const void *message, size_t len) {
   loop_->assertInLoopThread();
   ssize_t nwrote = 0;
@@ -143,6 +186,78 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
     if (!channel_->isWriting())
       channel_->enableWriting();
   }
+}
+
+void TcpConnection::sendInLoop(const char *message, size_t len) {
+  return sendInLoop(static_cast<const void *>(message), len);
+}
+
+void TcpConnection::sendInLoop(string &&message) {
+  return sendInLoop(static_cast<const void *>(std::move(message).c_str()),
+                    std::move(message).size());
+}
+
+void TcpConnection::shutdownInLoop() {
+
+  loop_->assertInLoopThread();
+  if (!channel_->isWriting()) {
+    // we are not writing
+    socket_->shutdownWrite();
+  }
+}
+
+/* 将连接套接字禁用Nagle算法 */
+void TcpConnection::setTcpNoDelay(bool on) { socket_->setTcpNoDelay(on); }
+
+/* 开始监听套接字读事件 */
+void TcpConnection::startRead() {
+  loop_->runInLoop(std::bind(&TcpConnection::startReadInLoop, this));
+}
+
+/* 开始监听套接字读事件 IN ioLoop */
+void TcpConnection::startReadInLoop() {
+  loop_->assertInLoopThread();
+  if (!reading_ || !channel_->isReading()) {
+    channel_->enableReading();
+    reading_ = true;
+  }
+}
+
+/* 停止监听套接字读事件 */
+void TcpConnection::stopRead() {
+  loop_->runInLoop(std::bind(&TcpConnection::stopReadInLoop, this));
+}
+
+/* 停止监听套接字读事件 IN ioLoop */
+void TcpConnection::stopReadInLoop() {
+  loop_->assertInLoopThread();
+  if (reading_ || channel_->isReading()) {
+    channel_->disableReading();
+    reading_ = false;
+  }
+}
+
+/* 连接建立会调用connectionCallback_ */
+void TcpConnection::connectEstablished() {
+  loop_->assertInLoopThread();
+  assert(state_ == kConnecting);
+  setState(kConnected);
+
+  channel_->enableReading();
+
+  connectionCallback_(shared_from_this());
+}
+
+/* 连接断开也会调用connectionCallback_ */
+void TcpConnection::connectDestroyed() {
+  loop_->assertInLoopThread();
+  if (state_ == kConnected) {
+    setState(kDisconnected);
+    channel_->disableAll();
+
+    connectionCallback_(shared_from_this());
+  }
+  channel_->remove();
 }
 
 } // namespace adl

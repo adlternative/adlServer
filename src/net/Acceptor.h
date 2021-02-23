@@ -12,7 +12,8 @@ public:
   using NewConnectionCallback =
       std::function<void(int sockfd, const InetAddress &)>;
 
-  Acceptor(EventLoop *loop, const InetAddress &listenAddr);
+  Acceptor(const std::shared_ptr<EventLoop> &loop,
+           const InetAddress &listenAddr);
   ~Acceptor();
 
   /* 设置新连接回调函数  */
@@ -25,7 +26,7 @@ public:
 
 private:
   void handleRead();
-  EventLoop *loop_; /* main loop */
+  std::shared_ptr<EventLoop> loop_; /* main loop */
   Socket acceptSocket_;
   Channel acceptChannel_;
   std::atomic<bool> listening_;                 /* 是否开始监听 */

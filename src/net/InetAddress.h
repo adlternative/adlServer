@@ -13,6 +13,8 @@ public:
   explicit InetAddress(const struct sockaddr_in &addr) : addr_(addr) {}
   std::string toIp() const;
   std::string toIpPort() const;
+  std::string toPortString() const;
+
   uint16_t toPort() const;
 
   sa_family_t family() const { return addr_.sin_family; }

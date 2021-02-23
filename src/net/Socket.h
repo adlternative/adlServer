@@ -2,7 +2,8 @@
 #define SOCKET_H
 #include <arpa/inet.h>
 #include <boost/noncopyable.hpp>
-struct tcp_info;
+// struct tcp_info;
+
 namespace adl {
 
 namespace sock {
@@ -23,6 +24,7 @@ void shutdownWrite(int sockfd);
 
 void toIpPort(char *buf, size_t size, const struct sockaddr *addr);
 void toIp(char *buf, size_t size, const struct sockaddr *addr);
+void toPortString(char *buf, size_t size, const struct sockaddr *addr);
 void fromIpPort(const char *ip, uint16_t port, struct sockaddr_in *addr);
 
 int getSocketError(int sockfd);

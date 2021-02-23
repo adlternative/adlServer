@@ -1,12 +1,15 @@
 #include "Acceptor.h"
 #include "EventLoop.h"
 #include "InetAddress.h"
+#include <cassert>
 #include <fcntl.h>
 namespace adl {
-Acceptor::Acceptor(EventLoop *loop, const InetAddress &listenAddr)
+Acceptor::Acceptor(const std::shared_ptr<EventLoop> &loop,
+                   const InetAddress &listenAddr)
     : acceptSocket_(sock::createNonblockingOrDie(listenAddr.family())),
       acceptChannel_(loop, acceptSocket_.fd()), listening_(false),
       idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC)) {
+  assert(idleFd_ >= 0);
   acceptSocket_.setReuseAddr(true);
   acceptSocket_.setReusePort(true);
   acceptSocket_.bindAddress(listenAddr);
@@ -15,6 +18,7 @@ Acceptor::Acceptor(EventLoop *loop, const InetAddress &listenAddr)
 Acceptor::~Acceptor() {
   acceptChannel_.disableAll();
   acceptChannel_.remove();
+  ::close(idleFd_);
 }
 
 void Acceptor::listen() {

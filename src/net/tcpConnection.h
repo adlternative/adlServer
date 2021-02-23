@@ -5,6 +5,7 @@
 #include "callBack.h"
 #include "netBuffer.h"
 #include <boost/noncopyable.hpp>
+// #include <string_view>
 namespace adl {
 
 class Channel;
@@ -15,11 +16,11 @@ using std::string;
 class TcpConnection : boost::noncopyable,
                       public std::enable_shared_from_this<TcpConnection> {
 public:
-  TcpConnection(EventLoop *loop, int sockfd, const InetAddress &localAddr,
-                const InetAddress &peerAddr);
+  TcpConnection(const std::shared_ptr<EventLoop> &loop, int sockfd,
+                const InetAddress &localAddr, const InetAddress &peerAddr);
   ~TcpConnection();
 
-  EventLoop *getLoop() const { return loop_; }
+  std::shared_ptr<EventLoop> getLoop() const { return loop_; }
   const InetAddress &localAddress() const { return localAddr_; }
   const InetAddress &peerAddress() const { return peerAddr_; }
   bool connected() const { return state_ == kConnected; }
@@ -28,6 +29,7 @@ public:
   void send(const void *message, int len);
   void send(const string &message);
   // void send(Buffer&& message); // C++11
+
   void send(netBuffer *message); // this one will swap data
   void shutdown();               // NOT thread safe, no simultaneous calling
   // void shutdownAndForceCloseAfter(double seconds); // NOT thread safe, no
@@ -64,15 +66,18 @@ public:
   // called when TcpServer has removed me from its map
   void connectDestroyed(); // should be called only once
 
-private:
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
+
+private:
   void handleRead(/* timeStamp receiveTime */);
   void handleWrite();
   void handleClose();
   void handleError();
-  // void sendInLoop(string&& message);
+  void sendInLoop(string &&message);
   // void sendInLoop(const StringPiece &message);
   void sendInLoop(const void *message, size_t len);
+  void sendInLoop(const char *message, size_t len);
+
   void shutdownInLoop();
   // void shutdownAndForceCloseInLoop(double seconds);
   void forceCloseInLoop();
@@ -81,7 +86,7 @@ private:
   void startReadInLoop();
   void stopReadInLoop();
 
-  EventLoop *loop_;
+  std::shared_ptr<EventLoop> loop_;
   const string name_;
   StateE state_; // FIXME: use atomic variable
   bool reading_;
@@ -103,6 +108,9 @@ private:
 };
 
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;
+
+void defaultMessageCallback(const TcpConnectionPtr &, netBuffer *buf);
+void defaultConnectionCallback(const TcpConnectionPtr &conn);
 
 } // namespace adl
 #endif

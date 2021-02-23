@@ -7,8 +7,8 @@ const int Channel::kNoneEvent = 0;                  /* 无事件 */
 const int Channel::kReadEvent = EPOLLIN | EPOLLPRI; /* 读事件 IN PRI */
 const int Channel::kWriteEvent = EPOLLOUT;          /* 写事件 OUT */
 
-Channel::Channel(EventLoop *loop, int fd)
-    : fd_(fd), loop_(loop), events_(0), revents_(0), status_(INIT) {}
+Channel::Channel(const std::shared_ptr<EventLoop> &loop, int fd)
+    : fd_(fd), events_(0), loop_(loop), revents_(0), status_(INIT) {}
 
 Channel::~Channel() {}
 

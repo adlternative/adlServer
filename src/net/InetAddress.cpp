@@ -28,5 +28,10 @@ std::string InetAddress::toIpPort() const {
 }
 
 uint16_t InetAddress::toPort() const { return ntohs(addr_.sin_port); }
+std::string InetAddress::toPortString() const {
+  char buf[6] = "";
+  sock::toPortString(buf, sizeof buf, getSockAddr());
+  return buf;
+}
 
 } // namespace adl

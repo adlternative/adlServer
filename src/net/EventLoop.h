@@ -5,12 +5,14 @@
 #include "Epoller.h"
 #include <boost/noncopyable.hpp>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <vector>
 namespace adl {
 class Channel;
 class Epoller;
-class EventLoop : boost::noncopyable {
+class EventLoop : boost::noncopyable,
+                  public std::enable_shared_from_this<EventLoop> {
 public:
   using Functor = std::function<void()>;
   EventLoop();
@@ -24,7 +26,7 @@ public:
   void updateChannel(Channel *channel);
   void removeChannel(Channel *channel);
   bool hasChannel(Channel *channel);
-  void assertInLoopThread() ;
+  void assertInLoopThread();
   bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
 
 private:

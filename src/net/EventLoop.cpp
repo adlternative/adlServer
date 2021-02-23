@@ -20,7 +20,7 @@ using namespace adl;
 
 EventLoop::EventLoop()
     : threadId_(CurrentThread::tid()), wakeupFd_(createEventfd()),
-      wakeupChannel_(std::make_unique<Channel>(this, wakeupFd_)),
+      wakeupChannel_(std::make_unique<Channel>(shared_from_this(), wakeupFd_)),
       currentActiveChannel_(nullptr), quit_(false), eventHandling_(false),
       callingPendingFunctors_(false) {
   wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));

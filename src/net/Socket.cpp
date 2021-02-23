@@ -12,6 +12,74 @@
 #include <unistd.h>
 
 namespace adl {
+void Socket::bindAddress(const InetAddress &addr) {
+  sock::bindOrDie(sockfd_, addr.getSockAddr());
+}
+
+void Socket::listen() { sock::listenOrDie(sockfd_); }
+
+int Socket::accept(InetAddress *peeraddr) {
+  struct sockaddr_in addr;
+  explicit_bzero(&addr, sizeof addr);
+  int connfd = sock::accept(sockfd_, &addr);
+  if (connfd >= 0) {
+    peeraddr->setSockAddr(addr);
+  }
+  return connfd;
+}
+
+void Socket::shutdownWrite() { sock::shutdownWrite(sockfd_); }
+
+/* 禁用Nagle's algorithm:
+等待直到等到前一个发送数据的ACK返回再发送小数据，对Telnet 可能有帮助。
+但是等待ACK增加了延时。
+https://stackoverflow.com/questions/3761276/when-should-i-use-tcp-nodelay-and-when-tcp-cork
+*/
+void Socket::setTcpNoDelay(bool on) {
+  int optval = on ? 1 : 0;
+  ::setsockopt(sockfd_, IPPROTO_TCP, TCP_NODELAY, &optval,
+               static_cast<socklen_t>(sizeof optval));
+  // FIXME CHECK
+}
+
+/* SO_REUSEADDR允许套接字
+  正在使用的端口被另一个SOCKET强制绑定
+  https://lwn.net/Articles/542629/ */
+void Socket::setReuseAddr(bool on) {
+  int optval = on ? 1 : 0;
+  ::setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &optval,
+               static_cast<socklen_t>(sizeof optval));
+  // FIXME CHECK
+}
+
+/*  如果多个服务器（进程或线程）分别将选项设置
+  SO_REUSEPORT,则它们可以绑定到同一端口：
+ SO_REUSEPORT的一个论据是，
+它使得在同一套接字上使用独立启动的进程更加容易。
+例如，您可以简单地启动新服务器（可能是新版本），
+然后关闭旧服务器，而不会中断任何服务。
+*/
+void Socket::setReusePort(bool on) {
+  int optval = on ? 1 : 0;
+  int ret = ::setsockopt(sockfd_, SOL_SOCKET, SO_REUSEPORT, &optval,
+                         static_cast<socklen_t>(sizeof optval));
+  if (ret < 0 && on) {
+    // LOG_SYSERR << "SO_REUSEPORT failed.";
+  }
+}
+
+/* 发送心跳包 */
+/* 使用SO_KEEPALIVE套接字选项调用
+的getsockopt函数允许应用程序检索
+keepalive选项的当前状态。
+*/
+void Socket::setKeepAlive(bool on) {
+  int optval = on ? 1 : 0;
+  ::setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE, &optval,
+               static_cast<socklen_t>(sizeof optval));
+  // FIXME CHECK
+}
+
 namespace sock {
 
 int createNonblockingOrDie(sa_family_t family) {
@@ -62,6 +130,42 @@ void listenOrDie(int sockfd) {
   }
 }
 
+int accept(int sockfd, struct sockaddr_in *addr) {
+  socklen_t addrlen = static_cast<socklen_t>(sizeof *addr);
+  int connfd = ::accept4(sockfd, sockaddr_cast(addr), &addrlen,
+                         SOCK_NONBLOCK | SOCK_CLOEXEC);
+  if (connfd < 0) {
+    int savedErrno = errno;
+    // LOG_SYSERR << "Socket::accept";
+    switch (savedErrno) {
+    case EAGAIN:
+    case ECONNABORTED:
+    case EINTR:
+    case EPROTO: // ???
+    case EPERM:
+    case EMFILE: // per-process lmit of open file desctiptor ???
+      // expected errors
+      errno = savedErrno;
+      break;
+    case EBADF:
+    case EFAULT:
+    case EINVAL:
+    case ENFILE:
+    case ENOBUFS:
+    case ENOMEM:
+    case ENOTSOCK:
+    case EOPNOTSUPP:
+      // unexpected errors
+      // LOG_FATAL << "unexpected error of ::accept " << savedErrno;
+      break;
+    default:
+      // LOG_FATAL << "unknown error of ::accept " << savedErrno;
+      break;
+    }
+  }
+  return connfd;
+}
+
 void close(int sockfd) {
   if (::close(sockfd) < 0)
     ERROR_WITH_ERRNO_STR("sock::close");
@@ -73,8 +177,21 @@ void shutdownWrite(int sockfd) {
   }
 }
 
-void toIpPort(char *buf, size_t size, const struct sockaddr *addr) {}
-
+void toIpPort(char *buf, size_t size, const struct sockaddr *addr) {
+  toIp(buf, size, addr);
+  size_t end = ::strlen(buf);
+  const struct sockaddr_in *addr4 = sockaddr_in_cast(addr);
+  uint16_t port = ntohs(addr4->sin_port);
+  assert(size > end);
+  snprintf(buf + end, size - end, ":%u", port);
+}
+void toPortString(char *buf, size_t size, const struct sockaddr *addr) {
+  const struct sockaddr_in *addr4 = sockaddr_in_cast(addr);
+  size_t end = ::strlen(buf);
+  uint16_t port = ntohs(addr4->sin_port);
+  assert(size > end);
+  snprintf(buf + end, size - end, "%u", port);
+}
 void toIp(char *buf, size_t size, const struct sockaddr *addr) {
   if (addr->sa_family == AF_INET) {
     assert(size >= INET_ADDRSTRLEN);

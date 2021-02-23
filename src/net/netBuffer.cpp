@@ -5,9 +5,11 @@
 
 namespace adl { // namespace adl
 
+/* 注意这里主要是读非阻塞的 socket 的操作 */
 int netBuffer::readFd(int fd, int *savedErrno, bool *closed) {
   int getSize = 0;
   int AllSize = 0;
+
   for (;;) {
     getSize = adl::sock::read(fd, buf_, writeable());
     /* 出错处理 */

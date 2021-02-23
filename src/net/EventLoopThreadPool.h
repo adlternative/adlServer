@@ -11,7 +11,7 @@ namespace adl {
 class EventLoopThreadPool : boost::noncopyable {
 public:
   typedef std::function<void(EventLoop *)> ThreadInitCallback;
-  EventLoopThreadPool(std::shared_ptr<EventLoop> &baseLoop);
+  EventLoopThreadPool(const std::shared_ptr<EventLoop> &baseLoop);
   ~EventLoopThreadPool() = default;
   std::shared_ptr<EventLoop> getNextLoop();
   // EventLoop* getLoopForHash(size_t hashCode);
@@ -25,6 +25,7 @@ private:
   int numThreads_;                      /* 线程数 */
   std::shared_ptr<EventLoop> baseLoop_; /* mainloop */
   bool started_;                        /* 开始了么 */
+  int next_;/* 轮询的下一个的坐标 */
   std::vector<std::unique_ptr<EventLoopThread>> threads_;
   std::vector<std::shared_ptr<EventLoop>> loops_;
 };

@@ -2,6 +2,7 @@
 #define CHANNEL_H
 #include <boost/noncopyable.hpp>
 #include <functional>
+#include <memory>
 namespace adl {
 
 class EventLoop;
@@ -18,7 +19,7 @@ public:
     NOT_LISTEN, /* 不在监听中 */
   };
 
-  Channel(EventLoop *loop, int fd);
+  Channel(const std::shared_ptr<EventLoop> &loop, int fd);
   ~Channel();
 
   void setReadCallback(EventCallback cb) { readCallback_ = std::move(cb); }
@@ -62,10 +63,10 @@ public:
 
 private:
   void update();
-  EventLoop *loop_; /* 从属的事件循环EventLoop对象 */
-  const int fd_;    /* 连接套接字 */
-  int events_;      /* 注册事件 */
-  int revents_;     /* 返回事件 */
+  std::shared_ptr<EventLoop> loop_; /* 从属的事件循环EventLoop对象 */
+  const int fd_;                    /* 连接套接字 */
+  int events_;                      /* 注册事件 */
+  int revents_;                     /* 返回事件 */
 
   status status_; /* 状态 */
 
