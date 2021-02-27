@@ -12,8 +12,8 @@ public:
   using NewConnectionCallback =
       std::function<void(int sockfd, const InetAddress &)>;
 
-  Acceptor(const std::shared_ptr<EventLoop> &loop,
-           const InetAddress &listenAddr);
+  explicit Acceptor(const std::shared_ptr<EventLoop> &loop,
+                    const InetAddress &listenAddr);
   ~Acceptor();
 
   /* 设置新连接回调函数  */

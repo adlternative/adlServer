@@ -13,7 +13,7 @@ public:
   typedef std::function<void(EventLoop *)> ThreadInitCallback;
 
   TcpServer(const std::shared_ptr<EventLoop> &loop,
-            const InetAddress &listenAddr);
+            const InetAddress &listenAddr, int numThreads = 4);
   ~TcpServer();
 
   void start();
@@ -38,7 +38,9 @@ public:
   void setWriteCompleteCallback(WriteCompleteCallback &&cb) {
     writeCompleteCallback_ = std::move(cb);
   }
-
+  void setThreadInitCallback(const ThreadInitCallback &&cb) {
+    threadInitCallback_ = std::move(cb);
+  }
   void removeConnection(const TcpConnectionPtr &conn);
   void removeConnectionInLoop(const TcpConnectionPtr &conn);
 
@@ -60,7 +62,7 @@ private:
 
   // ConnectionMap connections_;
 
-  std::atomic<bool> started_; /* 是否已经开始 */
+  std::atomic<bool> started_; /* 是否服务器已经开始跑 */
 };
 } // namespace adl
 

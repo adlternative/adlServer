@@ -1,4 +1,5 @@
 #include "EventLoop.h"
+#include "../headFile.h"
 #include "Channel.h"
 #include "Socket.h"
 #include <sys/eventfd.h>
@@ -9,6 +10,7 @@
 const int kPollTimeMs = 10000; /* 10s */
 
 int createEventfd() {
+
   int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   if (evtfd < 0) {
     /* FATAL */
@@ -18,19 +20,28 @@ int createEventfd() {
 
 using namespace adl;
 
-EventLoop::EventLoop()
-    : threadId_(CurrentThread::tid()), wakeupFd_(createEventfd()),
-      wakeupChannel_(std::make_unique<Channel>(shared_from_this(), wakeupFd_)),
+EventLoop::EventLoop(bool mainLoop)
+    : isMainLoop_(mainLoop), threadId_(CurrentThread::tid()),
       currentActiveChannel_(nullptr), quit_(false), eventHandling_(false),
-      callingPendingFunctors_(false) {
-  wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));
-  wakeupChannel_->enableReading();
-}
+      callingPendingFunctors_(false) {}
 
 EventLoop::~EventLoop() {
   wakeupChannel_->disableAll(); /* 从Epoll中删除wakeupChannel_ */
   wakeupChannel_->remove();     /* 彻底在map中删除wakeupChannel_ */
   ::close(wakeupFd_);
+}
+
+/* 在构造函数中将this 生成shared_from_this()会出错，
+  二段构造 */
+void EventLoop::init() {
+  INFO("EventLoop.init\n");
+  /* poller 必须先于 channel 初始化 ，
+    否则会出错 */
+  poller_ = std::make_unique<Epoller>(this);
+  wakeupFd_ = createEventfd();
+  wakeupChannel_ = std::make_unique<Channel>(shared_from_this(), wakeupFd_);
+  wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));
+  wakeupChannel_->enableReading();
 }
 
 void EventLoop::quit() {
@@ -83,8 +94,20 @@ bool EventLoop::hasChannel(Channel *channel) {
   return poller_->hasChannel(channel);
 }
 
+void EventLoop::addConnect(std::shared_ptr<TcpConnection> con) {
+  assertInLoopThread();
+  connectSet_.insert(con);
+}
+
+void EventLoop::rmConnect(std::shared_ptr<TcpConnection> con) {
+  assertInLoopThread();
+  connectSet_.erase(con);
+}
+
 void EventLoop::assertInLoopThread() {
   if (!isInLoopThread()) {
+    DEBUG("");
+
     // abortNotInLoopThread();
     // LOG_FATAL
   }

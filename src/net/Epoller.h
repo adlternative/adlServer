@@ -24,7 +24,6 @@ private:
   void fillActiveChannels(int numEvents, ChannelList *activeChannels) const;
   void update(int operation, Channel *channel);
   void assertInLoopThread() const ;
-
   typedef std::map<int, Channel *> ChannelMap; /* {fd,Channel} */
   ChannelMap channels_;                        /* {fd,Channel}字典 */
 

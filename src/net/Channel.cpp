@@ -1,14 +1,15 @@
 #include "Channel.h"
+#include "../util.h"
 #include "EventLoop.h"
 #include <poll.h>
 #include <sys/epoll.h>
 using namespace adl;
-const int Channel::kNoneEvent = 0;                  /* 无事件 */
+const int Channel::kNoneEvent = EPOLLET;            /* 无事件 */
 const int Channel::kReadEvent = EPOLLIN | EPOLLPRI; /* 读事件 IN PRI */
 const int Channel::kWriteEvent = EPOLLOUT;          /* 写事件 OUT */
 
-Channel::Channel(const std::shared_ptr<EventLoop> &loop, int fd)
-    : fd_(fd), events_(0), loop_(loop), revents_(0), status_(INIT) {}
+Channel::Channel(std::shared_ptr<EventLoop> loop, int fd)
+    : fd_(fd), events_(kNoneEvent), loop_(loop), revents_(0), status_(INIT) {}
 
 Channel::~Channel() {}
 
@@ -61,4 +62,16 @@ void Channel::handleEvent() {
 void Channel::remove() {
   // addedToLoop_ = false;
   loop_->removeChannel(this);
+}
+
+void Channel::debugEvents() {
+  if (events_ & EPOLLIN) {
+    ERR("EPOLLIN");
+  }
+  if (events_ & EPOLLOUT) {
+    ERR("EPOLLOUT");
+  }
+  if (events_ & EPOLLET) {
+    ERR("EPOLLET");
+  }
 }

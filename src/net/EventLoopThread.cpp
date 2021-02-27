@@ -16,6 +16,7 @@ void EventLoopThread::threadFunc() {
   {
     std::unique_lock<std::mutex> lock(mutex_);
     loop_ = std::make_shared<EventLoop>();
+    loop_->init();
     cond_.notify_one();
   }
   loop_->loop();

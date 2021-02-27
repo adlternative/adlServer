@@ -6,7 +6,8 @@
 namespace adl {
 Acceptor::Acceptor(const std::shared_ptr<EventLoop> &loop,
                    const InetAddress &listenAddr)
-    : acceptSocket_(sock::createNonblockingOrDie(listenAddr.family())),
+    : loop_(loop),
+      acceptSocket_(sock::createNonblockingOrDie(listenAddr.family())),
       acceptChannel_(loop, acceptSocket_.fd()), listening_(false),
       idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC)) {
   assert(idleFd_ >= 0);

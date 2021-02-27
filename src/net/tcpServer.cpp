@@ -1,4 +1,5 @@
 #include "tcpServer.h"
+#include "../headFile.h"
 #include "Acceptor.h"
 #include "EventLoopThreadPool.h"
 #include "Socket.h"
@@ -7,18 +8,22 @@
 namespace adl {
 
 TcpServer::TcpServer(const std::shared_ptr<EventLoop> &loop,
-                     const InetAddress &listenAddr)
+                     const InetAddress &listenAddr, int numThreads)
     : mainLoop_(loop), ip_(listenAddr.toIp()), port_(listenAddr.toPortString()),
-      acceptor_(std::make_unique<Acceptor>(mainLoop_, listenAddr)),
-      threadPool_(std::make_shared<EventLoopThreadPool>(mainLoop_)),
       connectionCallback_(defaultConnectionCallback),
       messageCallback_(defaultMessageCallback) {
+
+  mainLoop_->init();
+  acceptor_ = std::make_unique<Acceptor>(mainLoop_, listenAddr);
+  threadPool_ = std::make_shared<EventLoopThreadPool>(mainLoop_);
+  threadPool_->setThreadNum(numThreads);
   /* acceptor new Connect call TcpServer::newConnection  */
   acceptor_->setNewConnectionCallback(
       std::bind(&TcpServer::newConnection, this, _1, _2));
 }
 
 TcpServer::~TcpServer() {
+  INFO("TcpServer.destruct");
   mainLoop_->assertInLoopThread();
   /* LOG */
   // for (auto &item : connections_) {
@@ -30,10 +35,11 @@ TcpServer::~TcpServer() {
 }
 
 /* 开始跑
-  EventLoopThreadPool开始创建多个EventLoop线程进行跑，
+  EventLoopThrsetThreadNumeadPool开始创建多个EventLoop线程进行跑，
   acceptor开始listen
  */
 void TcpServer::start() {
+  INFO("TcpServer.start\n");
   if (!started_.load(std::memory_order_relaxed)) {
     bool expected = false;
     started_.compare_exchange_strong(expected, true);
@@ -53,6 +59,7 @@ void TcpServer::setThreadNum(int numThreads) {
   设置各种回调函数，
   并让subLoop执行连接建立回调函数 */
 void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
+  INFO("TcpServer.newConnection\n");
   mainLoop_->assertInLoopThread();
   std::shared_ptr<EventLoop> subLoop = threadPool_->getNextLoop();
   /* LOG */
@@ -64,6 +71,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
   conn->setWriteCompleteCallback(writeCompleteCallback_);
   conn->setCloseCallback(
       std::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
+  subLoop->addConnect(conn);
   subLoop->runInLoop(std::bind(&TcpConnection::connectEstablished, conn));
 }
 
@@ -75,18 +83,22 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
 */
 void TcpServer::removeConnection(const TcpConnectionPtr &conn) {
   // FIXME: unsafe
-  mainLoop_->runInLoop(
-      std::bind(&TcpServer::removeConnectionInLoop, this, conn));
+  auto subLoop = conn->getLoop();
+  if (subLoop)
+    subLoop->runInLoop(
+        std::bind(&TcpServer::removeConnectionInLoop, this, conn));
 }
 
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &conn) {
-  mainLoop_->assertInLoopThread();
-  // LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
-  //          << "] - connection " << conn->name();
-  // size_t n = connections_.erase(conn->name());
-
-  std::shared_ptr<EventLoop> subLoop = conn->getLoop();
-  subLoop->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
+  auto subLoop = conn->getLoop();
+  if (subLoop) {
+    subLoop->assertInLoopThread();
+    // LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
+    //          << "] - connection " << conn->name();
+    // size_t n = connections_.erase(conn->name());
+    subLoop->rmConnect(conn);
+    subLoop->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
+  }
 }
 
 } // namespace adl

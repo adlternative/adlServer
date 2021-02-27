@@ -1,5 +1,6 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
+#include "../util.h"
 #include <boost/noncopyable.hpp>
 #include <functional>
 #include <memory>
@@ -19,7 +20,7 @@ public:
     NOT_LISTEN, /* 不在监听中 */
   };
 
-  Channel(const std::shared_ptr<EventLoop> &loop, int fd);
+  Channel(std::shared_ptr<EventLoop> loop, int fd);
   ~Channel();
 
   void setReadCallback(EventCallback cb) { readCallback_ = std::move(cb); }
@@ -60,6 +61,7 @@ public:
 
   void handleEvent();
   void remove(); /* 从EventLoop中删除 */
+  void debugEvents();
 
 private:
   void update();

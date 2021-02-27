@@ -5,7 +5,7 @@
 using namespace adl;
 
 Epoller::Epoller(EventLoop *loop)
-    : epollfd_(::epoll_create1(EPOLL_CLOEXEC)), events_(0), ownerLoop_(loop) {
+    : epollfd_(::epoll_create1(EPOLL_CLOEXEC)), events_(16), ownerLoop_(loop) {
   if (epollfd_ == -1) {
     // epollfd_ 错误处理
   }
@@ -38,7 +38,8 @@ timeStamp Epoller::poll(int timeoutMs, ChannelList *activeChannels) {
 void Epoller::updateChannel(Channel *channel) {
   auto fd = channel->getFd();
   auto st = channel->getStatus();
-  auto ev = channel->getEvents();
+  // auto ev = channel->getEvents();
+  // channel->debugEvents();
   if (st == Channel::INIT || st == Channel::DELETED) {
     update(EPOLL_CTL_ADD, channel);
     channel->setStatus(Channel::LISTEN);
@@ -47,8 +48,9 @@ void Epoller::updateChannel(Channel *channel) {
     if (channel->noEvent()) {
       update(EPOLL_CTL_DEL, channel);
       channel->setStatus(Channel::NOT_LISTEN);
-    } else
+    } else {
       update(EPOLL_CTL_MOD, channel);
+    }
   } else if (st == Channel::NOT_LISTEN) {
     if (!channel->noEvent()) {
       update(EPOLL_CTL_ADD, channel);
@@ -96,8 +98,10 @@ void Epoller::update(int operation, Channel *channel) {
   event.events = channel->getEvents();
   event.data.ptr = channel;
   int fd = channel->getFd();
+
   if (::epoll_ctl(epollfd_, operation, fd, &event) < 0) {
     /* log */
+    ERROR_WITH_ERRNO_STR("");
   }
 }
 

@@ -16,11 +16,11 @@ using std::string;
 class TcpConnection : boost::noncopyable,
                       public std::enable_shared_from_this<TcpConnection> {
 public:
-  TcpConnection(const std::shared_ptr<EventLoop> &loop, int sockfd,
+  TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
                 const InetAddress &localAddr, const InetAddress &peerAddr);
   ~TcpConnection();
 
-  std::shared_ptr<EventLoop> getLoop() const { return loop_; }
+  std::shared_ptr<EventLoop> getLoop() const { return loop_.lock(); }
   const InetAddress &localAddress() const { return localAddr_; }
   const InetAddress &peerAddress() const { return peerAddr_; }
   bool connected() const { return state_ == kConnected; }
@@ -86,7 +86,7 @@ private:
   void startReadInLoop();
   void stopReadInLoop();
 
-  std::shared_ptr<EventLoop> loop_;
+  std::weak_ptr<EventLoop> loop_;
   const string name_;
   StateE state_; // FIXME: use atomic variable
   bool reading_;

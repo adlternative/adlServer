@@ -27,10 +27,10 @@
     return -1;                                                                 \
   }
 
-#define DEBUG_LINE_MSG(msg)                                                    \
+#define DEBUG(msg)                                                    \
   {                                                                            \
-    fprintf(stderr, "line:%d, [DEBUG]:%s", __LINE__, msg);                     \
-    ::abort();                                                                 \
+    fprintf(stderr, "[DEBUG] file:%s line:%d msg:%s\n", __FILE__, __LINE__,      \
+            msg);                                                              \
   }
 
 #define DIE(msg)                                                               \
@@ -51,6 +51,8 @@
     return -1;                                                                 \
   }
 
+
+#define INFO(fmt, args...) fprintf(stdout, "[INFO]:" fmt, ##args)
 #define ERR(fmt, args...) fprintf(stderr, "[ERR]:" fmt, ##args)
 
 #define ERROR_WITH_ERRNO_STR(msg)                                              \
