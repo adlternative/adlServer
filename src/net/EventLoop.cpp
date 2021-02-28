@@ -34,7 +34,7 @@ EventLoop::~EventLoop() {
 /* 在构造函数中将this 生成shared_from_this()会出错，
   二段构造 */
 void EventLoop::init() {
-  INFO("EventLoop.init\n");
+  INFO_("EventLoop.init\n");
   /* poller 必须先于 channel 初始化 ，
     否则会出错 */
   poller_ = std::make_unique<Epoller>(this);
@@ -93,23 +93,27 @@ bool EventLoop::hasChannel(Channel *channel) {
   assertInLoopThread();
   return poller_->hasChannel(channel);
 }
-
 void EventLoop::addConnect(std::shared_ptr<TcpConnection> con) {
+  runInLoop([this, con]() { addConnectInLoop(con); });
+}
+void EventLoop::rmConnect(std::shared_ptr<TcpConnection> con) {
+  runInLoop([this, con]() { rmConnectInLoop(con); });
+}
+void EventLoop::addConnectInLoop(std::shared_ptr<TcpConnection> con) {
   assertInLoopThread();
   connectSet_.insert(con);
 }
 
-void EventLoop::rmConnect(std::shared_ptr<TcpConnection> con) {
+void EventLoop::rmConnectInLoop(std::shared_ptr<TcpConnection> con) {
   assertInLoopThread();
   connectSet_.erase(con);
 }
 
 void EventLoop::assertInLoopThread() {
   if (!isInLoopThread()) {
-    DEBUG("");
-
+    LOG(FATAL) << "not in specified EventLoop"
+               << (isMainLoop() ? "(mainLoop)" : "(subLoop)") << "\n";
     // abortNotInLoopThread();
-    // LOG_FATAL
   }
 }
 

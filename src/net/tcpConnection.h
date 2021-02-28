@@ -1,6 +1,6 @@
 #ifndef TCPCONNECTION_H
 #define TCPCONNECTION_H
-#include "../log/timeStamp.h"
+#include "../base/timeStamp.h"
 #include "InetAddress.h"
 #include "callBack.h"
 #include "netBuffer.h"
@@ -78,7 +78,7 @@ private:
   void sendInLoop(const void *message, size_t len);
   void sendInLoop(const char *message, size_t len);
 
-  void shutdownInLoop();
+  void shutdownWriteInLoop();/* 关闭写 */
   // void shutdownAndForceCloseInLoop(double seconds);
   void forceCloseInLoop();
   void setState(StateE s) { state_ = s; }

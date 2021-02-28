@@ -1,7 +1,7 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 #include "logStream.h"
-#include "timeStamp.h"
+#include "../base/timeStamp.h"
 #include <functional>
 #include <string>
 

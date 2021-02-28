@@ -52,7 +52,7 @@ private:
   const std::string port_;              // local port
   std::unique_ptr<Acceptor> acceptor_; /*  接受者 handleRead 调用 accept */
 
-  std::shared_ptr<EventLoopThreadPool>
+  std::unique_ptr<EventLoopThreadPool>
       threadPool_; /* EventLoopThreadPool 用来分发subLoop连接 */
 
   ConnectionCallback connectionCallback_;

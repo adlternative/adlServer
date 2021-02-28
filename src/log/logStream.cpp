@@ -2,6 +2,14 @@
 #include <iostream>
 namespace adl {
 
+logStream &endl(logStream &stream) {
+  if (stream.buf_.avail() >= 1) {
+    stream.buf_.append('\n');
+  }
+  // flush
+  return stream;
+}
+
 template <typename T> void logStream::formatInteger(T v) {
   auto s = std::to_string(v);
   auto len = s.size();

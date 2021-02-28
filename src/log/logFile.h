@@ -1,7 +1,7 @@
 #ifndef LOGFILE_H
 #define LOGFILE_H
 #include "fileUtil.h"
-#include "timeStamp.h"
+#include "../base/timeStamp.h"
 #include <boost/noncopyable.hpp>
 #include <iostream>
 #include <memory>

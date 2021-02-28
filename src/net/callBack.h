@@ -1,6 +1,6 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
-#include "../log/timeStamp.h"
+#include "../base/timeStamp.h"
 #include <functional>
 #include <memory>
 namespace adl {

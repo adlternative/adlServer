@@ -21,15 +21,15 @@
     ::abort();                                                                 \
   }
 
-#define WARN(msg)                                                              \
+#define WARN_(msg)                                                             \
   {                                                                            \
     fprintf(stderr, "[WARN]:%s", msg);                                         \
     return -1;                                                                 \
   }
 
-#define DEBUG(msg)                                                    \
+#define DEBUG_(msg)                                                            \
   {                                                                            \
-    fprintf(stderr, "[DEBUG] file:%s line:%d msg:%s\n", __FILE__, __LINE__,      \
+    fprintf(stderr, "[DEBUG] file:%s line:%d msg:%s\n", __FILE__, __LINE__,    \
             msg);                                                              \
   }
 
@@ -51,9 +51,8 @@
     return -1;                                                                 \
   }
 
-
-#define INFO(fmt, args...) fprintf(stdout, "[INFO]:" fmt, ##args)
-#define ERR(fmt, args...) fprintf(stderr, "[ERR]:" fmt, ##args)
+#define INFO_(fmt, args...) fprintf(stdout, "[INFO]:" fmt, ##args)
+#define ERR_(fmt, args...) fprintf(stderr, "[ERR]:" fmt, ##args)
 
 #define ERROR_WITH_ERRNO_STR(msg)                                              \
   { fprintf(stderr, "[ERROR]: %s %s", msg, strerror(errno)); }
@@ -62,5 +61,4 @@ template <typename To, typename From> inline To implicit_cast(From const &f) {
   return f;
 }
 
-const char *strerror_tl(int savedErrno);
 #endif

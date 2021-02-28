@@ -6,9 +6,12 @@
 namespace adl {
 class logStream : boost::noncopyable {
 public:
+  friend logStream &endl(logStream &stream);
+
   typedef logStream self;
   typedef adlBuffer<kSmallBuffer> Buffer;
   template <typename T> void formatInteger(T v);
+  self &operator<<(self &(*p)(self &stream)) { return p(*this); }
   self &operator<<(short);
   self &operator<<(bool);
   self &operator<<(unsigned short);
@@ -34,6 +37,7 @@ public:
 private:
   Buffer buf_;
 };
+logStream &endl(logStream &stream);
 
 } // namespace adl
 #endif

@@ -1,4 +1,5 @@
 #include "Socket.h"
+#include "../log/Logging.h"
 #include "../util.h"
 #include "InetAddress.h"
 #include <cassert>
@@ -29,6 +30,8 @@ int Socket::accept(InetAddress *peeraddr) {
 }
 
 void Socket::shutdownWrite() { sock::shutdownWrite(sockfd_); }
+
+void Socket::shutdownRead() { sock::shutdownRead(sockfd_); }
 
 /* 禁用Nagle's algorithm:
 等待直到等到前一个发送数据的ACK返回再发送小数据，对Telnet 可能有帮助。
@@ -143,7 +146,7 @@ int accept(int sockfd, struct sockaddr_in *addr) {
     case EINTR:
     case EPROTO: // ???
     case EPERM:
-    case EMFILE: // per-process lmit of open file desctiptor ???
+    case EMFILE: // per-process limit of open file desctiptor ???
       // expected errors
       errno = savedErrno;
       break;
@@ -156,10 +159,10 @@ int accept(int sockfd, struct sockaddr_in *addr) {
     case ENOTSOCK:
     case EOPNOTSUPP:
       // unexpected errors
-      // LOG_FATAL << "unexpected error of ::accept " << savedErrno;
+      LOG(FATAL) << "unexpected error of ::accept " << savedErrno;
       break;
     default:
-      // LOG_FATAL << "unknown error of ::accept " << savedErrno;
+      LOG(FATAL) << "unknown error of ::accept " << savedErrno;
       break;
     }
   }
@@ -171,9 +174,15 @@ void close(int sockfd) {
     ERROR_WITH_ERRNO_STR("sock::close");
 }
 
+void shutdownRead(int sockfd) {
+  if (::shutdown(sockfd, SHUT_RD) < 0) {
+    LOG(ERROR) << "sock::shutdownRead" << adl::endl;
+  }
+}
+
 void shutdownWrite(int sockfd) {
   if (::shutdown(sockfd, SHUT_WR) < 0) {
-    // LOG_SYSERR << "sock::shutdownWrite";
+    LOG(ERROR) << "sock::shutdownWrite" << adl::endl;
   }
 }
 

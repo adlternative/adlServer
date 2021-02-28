@@ -1,5 +1,6 @@
 #ifndef NETBUFFER_H
 #define NETBUFFER_H
+#include "../util.h"
 #include <algorithm>
 #include <assert.h>
 #include <cstdlib>
@@ -97,6 +98,7 @@ public:
 
   /* 读后 */
   void retrieve(int len) {
+    //ERR_("%d%d\n", len, readable());
     assert(len <= readable());
     r_ += len;
   }

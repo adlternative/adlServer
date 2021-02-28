@@ -1,7 +1,7 @@
 #ifndef EVENTLOOP_H
 #define EVENTLOOP_H
 #include "../base/currentThread.h"
-#include "../log/timeStamp.h"
+#include "../base/timeStamp.h"
 #include "Epoller.h"
 #include "tcpConnection.h"
 #include <boost/noncopyable.hpp>
@@ -32,6 +32,11 @@ public:
 
   void addConnect(std::shared_ptr<TcpConnection> con);
   void rmConnect(std::shared_ptr<TcpConnection> con);
+  void addConnectInLoop(std::shared_ptr<TcpConnection> con);
+  void rmConnectInLoop(std::shared_ptr<TcpConnection> con);
+
+
+  size_t connectSize() { return connectSet_.size(); }
   void assertInLoopThread();
   bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
 

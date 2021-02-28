@@ -21,7 +21,7 @@ ssize_t write(int sockfd, const void *buf, size_t count);
 
 void close(int sockfd);
 void shutdownWrite(int sockfd);
-
+void shutdownRead(int sockfd);
 void toIpPort(char *buf, size_t size, const struct sockaddr *addr);
 void toIp(char *buf, size_t size, const struct sockaddr *addr);
 void toPortString(char *buf, size_t size, const struct sockaddr *addr);
@@ -49,12 +49,13 @@ public:
   explicit Socket(int sockfd) : sockfd_(sockfd) {}
   ~Socket() { sock::close(sockfd_); }
   int fd() const { return sockfd_; }
-  // bool getTcpInfo(struct tcp_info *) const;
+  // bool getTcpINFO_(struct tcp_info *) const;
   // bool getTcpInfoString(char *buf, int len) const;
   void bindAddress(const InetAddress &localaddr);
   void listen();
   int accept(InetAddress *peeraddr);
   void shutdownWrite();
+  void shutdownRead();
   void setTcpNoDelay(bool on);
   void setReuseAddr(bool on);
   void setReusePort(bool on);

@@ -1,16 +1,18 @@
 #include "tcpConnection.h"
-#include "../util.h"
+#include "../headFile.h"
 #include "Channel.h"
 #include "EventLoop.h"
 namespace adl {
 
 /* 默认的消息回调 */
-void defaultMessageCallback(const TcpConnectionPtr &, netBuffer *buf) {
+void defaultMessageCallback(const TcpConnectionPtr &conn, netBuffer *buf) {
+  LOG(INFO) << "get messages..." << adl::endl;
   buf->reset();
+  LOG(INFO) << "drop messages..." << adl::endl;
 }
 /* 默认的连接回调 */
 void defaultConnectionCallback(const TcpConnectionPtr &conn) {
-  // LOG_DEBUG << (conn->connected() ? "up" : "down");
+  LOG(INFO) << "connection setup..." << adl::endl;
 }
 
 TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
@@ -19,7 +21,7 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
     : loop_(loop), state_(kConnecting), socket_(new Socket(sockfd)),
       channel_(new Channel(loop.lock(), sockfd)), localAddr_(localAddr),
       peerAddr_(peerAddr) {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
 
   channel_->setReadCallback(std::bind(&TcpConnection::handleRead,
                                       this /* , std::placeholders::_1 */));
@@ -31,8 +33,8 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
 }
 
 TcpConnection::~TcpConnection() {
-  /* log */
-  INFO("%s\n", __func__);
+  LOG(INFO) << "the TcpConnection over" << adl::endl;
+  INFO_("%s\n", __func__);
   assert(state_ == kDisconnected);
 }
 
@@ -49,19 +51,19 @@ void TcpConnection::send(const void *message, int len) {
 }
 
 void TcpConnection::shutdown() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   if (state_ == kConnected) {
     setState(kDisconnecting);
     // FIXME: shared_from_this()?
     auto subLoop = getLoop();
     if (subLoop) {
-      subLoop->runInLoop(std::bind(&TcpConnection::shutdownInLoop, this));
+      subLoop->runInLoop(std::bind(&TcpConnection::shutdownWriteInLoop, this));
     }
   }
 }
 
 void TcpConnection::forceClose() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   // FIXME: use compare and swap
   if (state_ == kConnected || state_ == kDisconnecting) {
     setState(kDisconnecting);
@@ -74,7 +76,7 @@ void TcpConnection::forceClose() {
 }
 
 void TcpConnection::forceCloseInLoop() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();
@@ -86,17 +88,17 @@ void TcpConnection::forceCloseInLoop() {
 }
 /* 处理读事件:ok */
 void TcpConnection::handleRead(/* timeStamp receiveTime */) {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();
 
     int savedErrno;
-    bool closed = false;
+    bool writeClosed = false;
     /* read to inputBuf*/
-    int n = inputBuffer_.readFd(socket_->fd(), &savedErrno, &closed);
-    if (closed) {
-      /* 如果对端关闭，我们调用关闭回调 */
+    int n = inputBuffer_.readFd(socket_->fd(), &savedErrno, &writeClosed);
+    if (writeClosed) {
+      /* 如果对端写关闭，我们暂时直接关闭连接 */
       handleClose();
     } else if (n > 0) {
       /* 如果读到了数据，我们调用消息回调函数 */
@@ -112,7 +114,7 @@ void TcpConnection::handleRead(/* timeStamp receiveTime */) {
 
 /* 处理写事件:ok */
 void TcpConnection::handleWrite() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -135,7 +137,7 @@ void TcpConnection::handleWrite() {
         }
         /* 如果已经是关闭连接状态，关闭写端 */
         if (state_ == kDisconnecting) {
-          shutdownInLoop();
+          shutdownWriteInLoop();
         }
       }
     } else {
@@ -153,7 +155,7 @@ void TcpConnection::handleWrite() {
   connectionCallback_和closeCallback_
 */
 void TcpConnection::handleClose() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -170,14 +172,14 @@ void TcpConnection::handleClose() {
   出错的时候通过getSocketError获得套接字上的错误，
   并将其打印到日志文件中 */
 void TcpConnection::handleError() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   int err = sock::getSocketError(channel_->getFd());
-  // LOG()
+  LOG(ERROR) << "TcpConnection error" << adl::endl;
 }
 
 /* 在IO loop中发送信息 */
 void TcpConnection::sendInLoop(const void *message, size_t len) {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -185,8 +187,9 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
   ssize_t nwrote = 0;
   size_t remaining = len;
   bool faultError = false;
+
   if (state_ == kDisconnected) {
-    // LOG_WARN << "disconnected, give up writing";
+    LOG(WARN) << "disconnected, give up writing" << adl::endl;
     return;
   }
   /* 之前没有监听写事件 ，空的输出缓冲区，表示os的缓冲区没有满
@@ -207,6 +210,7 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
         // LOG_SYSERR << "TcpConnection::sendInLoop";
         if (errno == EPIPE || errno == ECONNRESET) // FIXME: any others?
         {
+          /* EPIPE说明对端读关闭，该怎么去处理？ */
           /* 致命错误 */
           faultError = true;
         }
@@ -233,7 +237,7 @@ void TcpConnection::sendInLoop(string &&message) {
                     std::move(message).size());
 }
 
-void TcpConnection::shutdownInLoop() {
+void TcpConnection::shutdownWriteInLoop() {
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -289,11 +293,13 @@ void TcpConnection::stopReadInLoop() {
 
 /* 连接建立会调用connectionCallback_ */
 void TcpConnection::connectEstablished() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (subLoop) {
-
     subLoop->assertInLoopThread();
+    LOG(INFO) << "subLoop(" << &*subLoop << ")get a new connection."
+              << "now it have" << subLoop->connectSize() << "connection(s).\n";
+
     assert(state_ == kConnecting);
     setState(kConnected);
 
@@ -305,7 +311,7 @@ void TcpConnection::connectEstablished() {
 
 /* 连接断开也会调用connectionCallback_ */
 void TcpConnection::connectDestroyed() {
-  INFO("%s\n", __func__);
+  INFO_("%s\n", __func__);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();

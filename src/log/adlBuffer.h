@@ -21,6 +21,12 @@ public:
     buf_[len_] = '\0';
   }
   void addlen(size_t len) { setlen(len + len_); }
+  /* 添加一个字符 */
+  void append(char c) {
+    assert(1 <= avail());
+    buf_[len_] = c;
+    addlen(1);
+  }
   void append(const char *buf, size_t len) {
     if (!len)
       return;
