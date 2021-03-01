@@ -1,15 +1,10 @@
-// Use of this source code is governed by a BSD-style license
-// that can be found in the License file.
-//
-// Author: Shuo Chen (chenshuo at chenshuo dot com)
-
-#ifndef MUDUO_BASE_WEAKCALLBACK_H
-#define MUDUO_BASE_WEAKCALLBACK_H
+#ifndef WEAKCALLBACK_H
+#define WEAKCALLBACK_H
 
 #include <functional>
 #include <memory>
 
-namespace muduo {
+namespace adl {
 
 // A barely usable WeakCallback
 
@@ -50,7 +45,20 @@ makeWeakCallback(const std::shared_ptr<CLASS> &object,
                  void (CLASS::*function)(ARGS...) const) {
   return WeakCallback<CLASS, ARGS...>(object, function);
 }
+template <typename CLASS, typename... ARGS>
+WeakCallback<CLASS, ARGS...> makeWeakCallback(std::shared_ptr<CLASS> object,
+                                              void (CLASS::*function)(ARGS...)
+                                                  const) {
+  return WeakCallback<CLASS, ARGS...>(object, function);
+}
 
-} // namespace muduo
+template <typename CLASS, typename... ARGS>
+WeakCallback<CLASS, ARGS...>
+makeWeakCallback(std::shared_ptr<CLASS> object,
+                 void (CLASS::*function)(ARGS...)) {
+  return WeakCallback<CLASS, ARGS...>(object, function);
+}
+
+} // namespace adl
 
 #endif // MUDUO_BASE_WEAKCALLBACK_H

@@ -6,6 +6,21 @@
 #include "util.h"
 
 #include <iostream>
+namespace adl {
+void reflectionMessageCallback(const TcpConnectionPtr &conn, netBuffer *buf) {
+  const char *content = buf->peek();
+  int len = buf->readable();
+  LOG(INFO) << "before reflection " << adl::endl;
+  conn->send(content, len);
+  buf->retrieve(len);
+  LOG(INFO) << "after reflection " << adl::endl;
+  // conn->debugBuffer();
+}
+/* 默认的连接回调 */
+void reflectionConnectionCallback(const TcpConnectionPtr &conn) {
+  LOG(INFO) << "connection setup..." << adl::endl;
+}
+} // namespace adl
 
 int main(int argc, char const *argv[]) {
   adl::asyncLogging *g_asyncLog =
@@ -22,6 +37,7 @@ int main(int argc, char const *argv[]) {
   adl::InetAddress addr("127.0.0.1", 9017);
   std::shared_ptr<adl::TcpServer> server =
       std::make_shared<adl::TcpServer>(mainLoop, addr);
+  server->setMessageCallback(adl::reflectionMessageCallback);
   server->start();
   mainLoop->loop();
 

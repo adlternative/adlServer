@@ -11,7 +11,7 @@ EventLoopThread::~EventLoopThread() {
 
 void EventLoopThread::threadFunc() {
   if (callback_)
-    callback_(&*loop_);
+    callback_(loop_);
 
   {
     std::unique_lock<std::mutex> lock(mutex_);

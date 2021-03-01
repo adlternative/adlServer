@@ -21,7 +21,6 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
     : loop_(loop), state_(kConnecting), socket_(new Socket(sockfd)),
       channel_(new Channel(loop.lock(), sockfd)), localAddr_(localAddr),
       peerAddr_(peerAddr) {
-  INFO_("%s\n", __func__);
 
   channel_->setReadCallback(std::bind(&TcpConnection::handleRead,
                                       this /* , std::placeholders::_1 */));
@@ -41,15 +40,13 @@ TcpConnection::~TcpConnection() {
 void TcpConnection::send(const void *message, int len) {
 
   if (state_ == kConnected) {
-    void (TcpConnection::*fp)(const void *message, size_t len) =
-        &TcpConnection::sendInLoop;
     auto subLoop = getLoop();
     if (subLoop) {
-      subLoop->runInLoop(std::bind(fp, this, message, len));
+      subLoop->runInLoop(
+          [this, message, len]() { this->sendInLoop(message, len); });
     }
   }
 }
-
 void TcpConnection::shutdown() {
   INFO_("%s\n", __func__);
   if (state_ == kConnected) {
@@ -76,7 +73,7 @@ void TcpConnection::forceClose() {
 }
 
 void TcpConnection::forceCloseInLoop() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();
@@ -88,7 +85,7 @@ void TcpConnection::forceCloseInLoop() {
 }
 /* 处理读事件:ok */
 void TcpConnection::handleRead(/* timeStamp receiveTime */) {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();
@@ -101,6 +98,7 @@ void TcpConnection::handleRead(/* timeStamp receiveTime */) {
       /* 如果对端写关闭，我们暂时直接关闭连接 */
       handleClose();
     } else if (n > 0) {
+      // inputBuffer_.debugLenByte(100);
       /* 如果读到了数据，我们调用消息回调函数 */
       messageCallback_(shared_from_this(), &inputBuffer_);
     } else { /* 出错 */
@@ -114,7 +112,7 @@ void TcpConnection::handleRead(/* timeStamp receiveTime */) {
 
 /* 处理写事件:ok */
 void TcpConnection::handleWrite() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -155,7 +153,7 @@ void TcpConnection::handleWrite() {
   connectionCallback_和closeCallback_
 */
 void TcpConnection::handleClose() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -172,14 +170,14 @@ void TcpConnection::handleClose() {
   出错的时候通过getSocketError获得套接字上的错误，
   并将其打印到日志文件中 */
 void TcpConnection::handleError() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   int err = sock::getSocketError(channel_->getFd());
   LOG(ERROR) << "TcpConnection error" << adl::endl;
 }
 
 /* 在IO loop中发送信息 */
 void TcpConnection::sendInLoop(const void *message, size_t len) {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -194,9 +192,12 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
   }
   /* 之前没有监听写事件 ，空的输出缓冲区，表示os的缓冲区没有满
     我们就可以直接write我们本次想发送的message  */
+
   if (!channel_->isWriting() && outputBuffer_.readable() == 0) {
+
     nwrote = sock::write(channel_->getFd(), message, len);
     if (nwrote >= 0) {
+      LOG(INFO) << "writeSize: " << nwrote << adl::endl;
       /* 写一次，本次信息全写完触发一次写完成事件 */
       remaining = len - nwrote;
       if (remaining == 0 && writeCompleteCallback_) {
@@ -223,8 +224,10 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
     outputBuffer_.append(static_cast<const char *>(message) + nwrote,
                          remaining);
     // 关注epollout事件，OS写缓冲区不满，会触发HandleWrite
-    if (!channel_->isWriting())
+    if (!channel_->isWriting()) {
+      LOG(INFO) << "Os write buffer fulled.So we apply EPOLLOUT" << adl::endl;
       channel_->enableWriting();
+    }
   }
 }
 
@@ -238,6 +241,7 @@ void TcpConnection::sendInLoop(string &&message) {
 }
 
 void TcpConnection::shutdownWriteInLoop() {
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -253,6 +257,7 @@ void TcpConnection::setTcpNoDelay(bool on) { socket_->setTcpNoDelay(on); }
 
 /* 开始监听套接字读事件 */
 void TcpConnection::startRead() {
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -261,6 +266,7 @@ void TcpConnection::startRead() {
 
 /* 开始监听套接字读事件 IN ioLoop */
 void TcpConnection::startReadInLoop() {
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -273,6 +279,7 @@ void TcpConnection::startReadInLoop() {
 
 /* 停止监听套接字读事件 */
 void TcpConnection::stopRead() {
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -281,6 +288,7 @@ void TcpConnection::stopRead() {
 
 /* 停止监听套接字读事件 IN ioLoop */
 void TcpConnection::stopReadInLoop() {
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
     return;
@@ -293,7 +301,7 @@ void TcpConnection::stopReadInLoop() {
 
 /* 连接建立会调用connectionCallback_ */
 void TcpConnection::connectEstablished() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();
@@ -311,7 +319,7 @@ void TcpConnection::connectEstablished() {
 
 /* 连接断开也会调用connectionCallback_ */
 void TcpConnection::connectDestroyed() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (subLoop) {
     subLoop->assertInLoopThread();

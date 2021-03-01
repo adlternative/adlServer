@@ -48,9 +48,9 @@ public:
     events_ = kNoneEvent;
     update();
   }
-  bool isWriting() const { return events_ & kWriteEvent; } /* 判断事件可写 */
-  bool isReading() const { return events_ & kReadEvent; } /* 判断事件可读 */
-  bool noEvent() const { return events_ == kNoneEvent; } /* 判断无事件 */
+  bool isWriting() const { return events_ & kWriteEvent; } /* 判断我们是否注册了可写事件 */
+  bool isReading() const { return events_ & kReadEvent; } /* 判断我们是否注册了可读事件 */
+  bool noEvent() const { return events_ == kNoneEvent; } /* 判断我们是否没注册事件 */
 
   int getFd() const { return fd_; }
   int getEvents() const { return events_; }

@@ -44,14 +44,16 @@ public:
     return reading_;
   }; // NOT thread safe, may race with start/stopReadInLoop
 
-  void setConnectionCallback(const ConnectionCallback &cb) {
-    connectionCallback_ = cb;
+  void setConnectionCallback(ConnectionCallback &&cb) {
+    connectionCallback_ = std::forward<ConnectionCallback>(cb);
   }
 
-  void setMessageCallback(const MessageCallback &cb) { messageCallback_ = cb; }
+  void setMessageCallback(MessageCallback &&cb) {
+    messageCallback_ = std::forward<MessageCallback>(cb);
+  }
 
-  void setWriteCompleteCallback(const WriteCompleteCallback &cb) {
-    writeCompleteCallback_ = cb;
+  void setWriteCompleteCallback(WriteCompleteCallback &&cb) {
+    writeCompleteCallback_ = std::forward<WriteCompleteCallback>(cb);
   }
 
   netBuffer *inputBuffer() { return &inputBuffer_; }
@@ -59,8 +61,16 @@ public:
   netBuffer *outputBuffer() { return &outputBuffer_; }
 
   /// Internal use only.
-  void setCloseCallback(const CloseCallback &cb) { closeCallback_ = cb; }
+  void setCloseCallback(CloseCallback &&cb) {
+    closeCallback_ = std::forward<CloseCallback>(cb);
+  }
 
+  void debugBuffer() {
+    LOG(DEBUG) << "outputBuffer_:" << adl::endl;
+    outputBuffer_.debug();
+    LOG(DEBUG) << "inputBuffer_:" << adl::endl;
+    inputBuffer_.debug();
+  }
   // called when TcpServer accepts a new connection
   void connectEstablished(); // should be called only once
   // called when TcpServer has removed me from its map
@@ -78,7 +88,7 @@ private:
   void sendInLoop(const void *message, size_t len);
   void sendInLoop(const char *message, size_t len);
 
-  void shutdownWriteInLoop();/* 关闭写 */
+  void shutdownWriteInLoop(); /* 关闭写 */
   // void shutdownAndForceCloseInLoop(double seconds);
   void forceCloseInLoop();
   void setState(StateE s) { state_ = s; }
@@ -98,7 +108,6 @@ private:
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;
-  // HighWaterMarkCallback highWaterMarkCallback_;
   CloseCallback closeCallback_;
   size_t highWaterMark_;
   netBuffer inputBuffer_;
@@ -107,9 +116,9 @@ private:
   //        bytesReceived_, bytesSent_
 };
 
-typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;
+using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
 
-void defaultMessageCallback(const TcpConnectionPtr &, netBuffer *buf);
+void defaultMessageCallback(const TcpConnectionPtr &conn, netBuffer *buf);
 void defaultConnectionCallback(const TcpConnectionPtr &conn);
 
 } // namespace adl

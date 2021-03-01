@@ -10,7 +10,7 @@ namespace adl {
 
 class EventLoopThreadPool : boost::noncopyable {
 public:
-  typedef std::function<void(EventLoop *)> ThreadInitCallback;
+  using ThreadInitCallback = EventLoopThread::ThreadInitCallback;
   EventLoopThreadPool(const std::shared_ptr<EventLoop> &baseLoop);
   ~EventLoopThreadPool() = default;
   std::shared_ptr<EventLoop> getNextLoop();

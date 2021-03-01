@@ -4,7 +4,7 @@
 
 using namespace adl;
 
-Epoller::Epoller(EventLoop *loop)
+Epoller::Epoller(const std::shared_ptr<EventLoop> &loop)
     : epollfd_(::epoll_create1(EPOLL_CLOEXEC)), events_(16), ownerLoop_(loop) {
   if (epollfd_ == -1) {
     LOG(FATAL) << "epoll_create1 error" << adl::endl;
@@ -16,17 +16,15 @@ Epoller::~Epoller() { ::close(epollfd_); }
 /* epoll_wait */
 timeStamp Epoller::poll(int timeoutMs, ChannelList *activeChannels) {
   /* Log */
-  LOG(INFO) << "epoll begin to wait" << adl::endl;
   int numEvents = ::epoll_wait(epollfd_, &*events_.begin(),
                                static_cast<int>(events_.size()), timeoutMs);
   int savedErrno = errno; /* 保存当前错误，以防被之后的函数修改 */
   timeStamp now(timeStamp::now());
-  LOG(INFO) << "epoll wait over" << adl::endl;
   if (numEvents < 0) {
     errno = savedErrno;
     LOG(ERROR) << "Epoller::poll error" << adl::endl;
   } else if (numEvents == 0) {
-    LOG(TRACE) << "Epoller::poll timeout, no events happened!" << adl::endl;
+    // LOG(DEBUG) << "Epoller::poll timeout, no events happened!" << adl::endl;
     /* 如果我们设置了超时时间，
     并且在这段时间内没有事件发生 */
   } else {
@@ -117,4 +115,10 @@ void Epoller::update(int operation, Channel *channel) {
   }
 }
 
-void Epoller::assertInLoopThread() const { ownerLoop_->assertInLoopThread(); }
+void Epoller::assertInLoopThread() const {
+  auto loop = ownerLoop_.lock();
+  if (loop)
+    loop->assertInLoopThread();
+  else
+    LOG(WARN)<<"Epoller::assertInLoopThread"<<adl::endl;
+}

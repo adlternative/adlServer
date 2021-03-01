@@ -16,11 +16,13 @@ TcpServer::TcpServer(const std::shared_ptr<EventLoop> &loop,
 
   mainLoop_->init();
   acceptor_ = std::make_unique<Acceptor>(mainLoop_, listenAddr);
-  threadPool_ = std::make_unique<EventLoopThreadPool>(mainLoop_);
-  threadPool_->setThreadNum(numThreads);
   /* acceptor new Connect call TcpServer::newConnection  */
   acceptor_->setNewConnectionCallback(
-      std::bind(&TcpServer::newConnection, this, _1, _2));
+      [this](int sockfd, const adl::InetAddress &peerAddr) {
+        this->newConnection(sockfd, peerAddr);
+      });
+  threadPool_ = std::make_unique<EventLoopThreadPool>(mainLoop_);
+  threadPool_->setThreadNum(numThreads);
 }
 
 TcpServer::~TcpServer() {
@@ -40,13 +42,13 @@ TcpServer::~TcpServer() {
   acceptor开始listen
  */
 void TcpServer::start() {
-  LOG(INFO) << "adlServer: " << ip_ << ":" << port_;
+  LOG(INFO) << "adlServer: " << ip_ << ":" << port_ << adl::endl;
   /* if !started_ -> started_=true */
   if (!started_.load(std::memory_order_relaxed)) {
     bool expected = false;
     started_.compare_exchange_strong(expected, true);
   }
-  /* 启动subThread */
+  /* 启动subThreads */
   assert(!threadPool_->started());
   threadPool_->start(threadInitCallback_);
   /* 启动acceptor */
@@ -72,11 +74,12 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
   InetAddress localAddr(sock::getLocalAddr(sockfd));
   TcpConnectionPtr conn(
       new TcpConnection(subLoop, sockfd, localAddr, peerAddr));
-  conn->setConnectionCallback(connectionCallback_);
-  conn->setMessageCallback(messageCallback_);
-  conn->setWriteCompleteCallback(writeCompleteCallback_);
-  conn->setCloseCallback(
-      std::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
+  conn->setConnectionCallback(std::move(connectionCallback_));
+  conn->setMessageCallback(std::move(messageCallback_));
+  conn->setWriteCompleteCallback(std::move(writeCompleteCallback_));
+  conn->setCloseCallback([this](const adl::TcpConnectionPtr &conn) {
+    this->removeConnection(conn);
+  });
   subLoop->addConnect(conn);
   subLoop->runInLoop([conn]() { conn->connectEstablished(); });
 }
@@ -90,8 +93,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
 void TcpServer::removeConnection(const TcpConnectionPtr &conn) {
   auto subLoop = conn->getLoop();
   if (subLoop)
-    subLoop->runInLoop(
-        std::bind(&TcpServer::removeConnectionInLoop, this, conn));
+    subLoop->runInLoop([this, conn]() { this->removeConnectionInLoop(conn); });
 }
 
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &conn) {
@@ -101,8 +103,8 @@ void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &conn) {
     // LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
     //          << "] - connection " << conn->name();
     // size_t n = connections_.erase(conn->name());
-    subLoop->rmConnect(conn);
     subLoop->queueInLoop([conn]() { conn->connectDestroyed(); });
+    subLoop->rmConnect(conn);
   }
 }
 

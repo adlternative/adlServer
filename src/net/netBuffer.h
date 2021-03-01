@@ -1,6 +1,6 @@
 #ifndef NETBUFFER_H
 #define NETBUFFER_H
-#include "../util.h"
+#include "../headFile.h"
 #include <algorithm>
 #include <assert.h>
 #include <cstdlib>
@@ -65,12 +65,14 @@ public:
   ~netBuffer() { free(buf_); }
   /* 向后写 */
   void append(const char *buf, int len) {
+    LOG(TRACE) << "append" << adl::endl;
     checkCapcity(len);
     for (int i = 0; i != len; i++) {
       buf_[w_++] = buf[i];
     }
   }
   void append(char *buf, int len) {
+    LOG(TRACE) << "append" << adl::endl;
     checkCapcity(len);
     for (int i = 0; i != len; i++) {
       buf_[w_++] = buf[i];
@@ -94,25 +96,37 @@ public:
     retrieve(sizeof(int));
     return i;
   }
+
   const char *peek() const { return buf_ + r_; }
 
+  const char *begin() const { return buf_; }
+  char *begin() { return buf_; }
   /* 读后 */
   void retrieve(int len) {
-    //ERR_("%d%d\n", len, readable());
+    // ERR_("%d%d\n", len, readable());
+    LOG(TRACE) << "retrieve" << adl::endl;
+
     assert(len <= readable());
     r_ += len;
   }
   /* 读到string */
   string retrieveAsString(size_t len) {
+    LOG(TRACE) << "retrieveAsString" << adl::endl;
+
     assert(len <= readable());
     string result(peek(), len);
     retrieve(len);
     return result;
   }
-  string retrieveAllAsString() { return retrieveAsString(readable()); }
+  string retrieveAllAsString() {
+    LOG(TRACE) << "retrieveAllAsString" << adl::endl;
+    return retrieveAsString(readable());
+  }
   char *buffer() { return buf_; }
   /* 检查容量,能否往后写;不能则扩容 */
   void checkCapcity(int len) {
+    LOG(TRACE) << "checkCapcity" << adl::endl;
+
     /* 检查缓冲区能否向前移动 */
     if (writeable() <= len) {
       if (checkCanMoveToLeft()) {
@@ -129,6 +143,7 @@ public:
   }
   /* 扩容 */
   void expansion(int len) {
+    LOG(TRACE) << "expansion" << adl::endl;
     while (writeable() <= len)
       alloc_ *= 2;
     buf_ = static_cast<char *>(realloc(buf_, alloc_));
@@ -147,6 +162,22 @@ public:
   void reset() {
     r_ = 0;
     w_ = 0;
+  }
+  void debug() {
+    LOG(DEBUG) << "r_:" << r_ << " w_:" << w_ << " buffer:" << buf_
+               << adl::endl;
+    LOG(DEBUG) << "readable:" << readable() << " writeable:" << writeable()
+               << adl::endl;
+  }
+  void debugLenByte(int len) {
+    for (int i = 0; i < len; i++) {
+      if (buf_[i] == '\r')
+        fprintf(stderr, "(\\r)%d\n", buf_[i]);
+      else if (buf_[i] == '\n')
+        fprintf(stderr, "(\\n)%d\n", buf_[i]);
+      else
+        fprintf(stderr, "(%c)%d\n", buf_[i], buf_[i]);
+    }
   }
 
 private:

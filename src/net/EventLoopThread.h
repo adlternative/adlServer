@@ -7,7 +7,7 @@ namespace adl {
 
 class EventLoopThread : boost::noncopyable {
 public:
-  using ThreadInitCallback = std::function<void(EventLoop *)>;
+  using ThreadInitCallback = std::function<void(const std::shared_ptr<EventLoop>&)>;
   EventLoopThread(const ThreadInitCallback &cb = ThreadInitCallback());
   ~EventLoopThread();
   std::shared_ptr<EventLoop> getLoop() { return loop_; }

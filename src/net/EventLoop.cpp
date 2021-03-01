@@ -10,10 +10,9 @@
 const int kPollTimeMs = 10000; /* 10s */
 
 int createEventfd() {
-
   int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   if (evtfd < 0) {
-    /* FATAL */
+    LOG(FATAL) << "createEventfd error" << adl::endl;
   }
   return evtfd;
 }
@@ -37,7 +36,7 @@ void EventLoop::init() {
   INFO_("EventLoop.init\n");
   /* poller 必须先于 channel 初始化 ，
     否则会出错 */
-  poller_ = std::make_unique<Epoller>(this);
+  poller_ = std::make_unique<Epoller>(shared_from_this());
   wakeupFd_ = createEventfd();
   wakeupChannel_ = std::make_unique<Channel>(shared_from_this(), wakeupFd_);
   wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));
@@ -55,6 +54,7 @@ void EventLoop::quit() {
     wakeup();
   }
 }
+
 /* 加锁后向队列中添加任务函数
 如果不是在IO线程或者说现在是在IO线程，但我们正在执行任务
 （我们的新任务并不在当前交换的局部任务向量中），
@@ -75,7 +75,7 @@ void EventLoop::wakeup() {
   uint64_t one = 1;
   ssize_t n = sock::write(wakeupFd_, &one, sizeof one);
   if (n != sizeof one) {
-    /* log */
+    LOG(ERROR) << "EventLoop::wakeup error" << adl::endl;
   }
 }
 
@@ -93,12 +93,15 @@ bool EventLoop::hasChannel(Channel *channel) {
   assertInLoopThread();
   return poller_->hasChannel(channel);
 }
+
 void EventLoop::addConnect(std::shared_ptr<TcpConnection> con) {
   runInLoop([this, con]() { addConnectInLoop(con); });
 }
+
 void EventLoop::rmConnect(std::shared_ptr<TcpConnection> con) {
   runInLoop([this, con]() { rmConnectInLoop(con); });
 }
+
 void EventLoop::addConnectInLoop(std::shared_ptr<TcpConnection> con) {
   assertInLoopThread();
   connectSet_.insert(con);
@@ -150,7 +153,7 @@ void EventLoop::handleRead() {
   uint64_t one = 1;
   ssize_t n = sock::read(wakeupFd_, &one, sizeof one);
   if (n != sizeof one) {
-    /* Log */
+    LOG(ERROR) << "EventLoop::handleRead(wakeup) error" << adl::endl;
   }
 }
 

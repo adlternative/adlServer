@@ -10,8 +10,7 @@ namespace adl {
 
 class TcpServer : boost::noncopyable {
 public:
-  typedef std::function<void(EventLoop *)> ThreadInitCallback;
-
+  using ThreadInitCallback = EventLoopThread::ThreadInitCallback;
   TcpServer(const std::shared_ptr<EventLoop> &loop,
             const InetAddress &listenAddr, int numThreads = 4);
   ~TcpServer();

@@ -1,7 +1,7 @@
 #ifndef LOGGING_H
 #define LOGGING_H
-#include "logStream.h"
 #include "../base/timeStamp.h"
+#include "logStream.h"
 #include <functional>
 #include <string>
 
@@ -51,5 +51,9 @@ extern Logger::logLevel globalLogLevel;
                   : 0,                                                         \
               adl::Logger::level)                                              \
       .ls_
+
+#define unglyTrace(Class)                                                 \
+  LOG(TRACE) << typeid(Class).name() << "::" << __func__ << adl::endl;
+
 } // namespace adl
 #endif

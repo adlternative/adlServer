@@ -87,7 +87,7 @@ void Channel::debugEvents() {
  */
 
 /* 
-云风最近的一篇博客
+云风最近的一篇博客讲了半关闭问题
 https://blog.codingnow.com/2021/02/skynet_tcp_halfclose.html#more
 
  */

@@ -4,7 +4,8 @@ RM = rm -rf
 
 SRC =
 
-SRC += src/main.cpp
+SRC += src/reflection.cpp
+# SRC += src/main.cpp
 SRC += src/base/currentThread.cpp
 SRC += src/base/timeStamp.cpp
 SRC += src/log/asyncLogging.cpp
@@ -32,6 +33,10 @@ all: build
 # 	$(CPP) $(OBJS) -lpthread -o a.out
 # OBJ:
 # 	$(CPP) -c $(SRC) -o $(OBJS)
+
+# -fsanitize=address
 build :
-	$(CPP) $(SRC) -g -lpthread -o a.out
+	$(CPP) $(SRC) -lpthread  -o a.out
+# reflectServer :
+# 	$(CPP) $(SRC) -lpthread  -o a.out
 

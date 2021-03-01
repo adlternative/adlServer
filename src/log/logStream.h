@@ -4,6 +4,16 @@
 #include <boost/noncopyable.hpp>
 #include <string>
 namespace adl {
+
+struct buf_len {
+  buf_len(const char *buf, int len) : buf_(buf), len_(len) {}
+  buf_len(const void *buf, int len)
+      : buf_(static_cast<const char *>(buf)), len_(len) {}
+
+  const char *buf_;
+  int len_;
+};
+
 class logStream : boost::noncopyable {
 public:
   friend logStream &endl(logStream &stream);
@@ -11,6 +21,7 @@ public:
   typedef logStream self;
   typedef adlBuffer<kSmallBuffer> Buffer;
   template <typename T> void formatInteger(T v);
+  self &operator<<(const buf_len &);
   self &operator<<(self &(*p)(self &stream)) { return p(*this); }
   self &operator<<(short);
   self &operator<<(bool);

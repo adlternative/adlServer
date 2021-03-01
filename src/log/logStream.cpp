@@ -17,6 +17,12 @@ template <typename T> void logStream::formatInteger(T v) {
     buf_.append(s, len);
 }
 
+logStream &logStream::operator<<(const buf_len &bl) {
+  if (bl.len_ <= buf_.avail())
+    buf_.append(bl.buf_, bl.len_);
+  return *this;
+}
+
 logStream &logStream::operator<<(bool v) {
   if (1 <= buf_.avail())
     buf_.append(v ? "1" : "0", 1);
