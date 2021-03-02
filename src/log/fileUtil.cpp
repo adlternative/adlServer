@@ -1,5 +1,5 @@
 #include "fileUtil.h"
-#include "../util.h"
+#include "../tool/usage.h"
 #include "Logging.h"
 #include <fcntl.h>
 #include <functional>

@@ -52,8 +52,8 @@ extern Logger::logLevel globalLogLevel;
               adl::Logger::level)                                              \
       .ls_
 
-#define unglyTrace(Class)                                                 \
-  LOG(TRACE) << typeid(Class).name() << "::" << __func__ << adl::endl;
-
+#define unglyTrace(Class)                                                      \
+  LOG(TRACE) << typeid(Class).name() << "::" << __func__ << adl::endl;         \
+  fprintf(stderr, "%s::%s\n", typeid(Class).name(), __func__);
 } // namespace adl
 #endif

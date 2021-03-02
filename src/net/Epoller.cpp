@@ -1,5 +1,5 @@
 #include "Epoller.h"
-#include "../headFile.h"
+#include "../include/headFile.h"
 #include "Channel.h"
 
 using namespace adl;
@@ -15,14 +15,14 @@ Epoller::~Epoller() { ::close(epollfd_); }
 
 /* epoll_wait */
 timeStamp Epoller::poll(int timeoutMs, ChannelList *activeChannels) {
-  /* Log */
+  // unglyTrace(Epoller);
   int numEvents = ::epoll_wait(epollfd_, &*events_.begin(),
                                static_cast<int>(events_.size()), timeoutMs);
   int savedErrno = errno; /* 保存当前错误，以防被之后的函数修改 */
   timeStamp now(timeStamp::now());
   if (numEvents < 0) {
     errno = savedErrno;
-    LOG(ERROR) << "Epoller::poll error" << adl::endl;
+    LOG(ERROR) << adl::endl;
   } else if (numEvents == 0) {
     // LOG(DEBUG) << "Epoller::poll timeout, no events happened!" << adl::endl;
     /* 如果我们设置了超时时间，
@@ -120,5 +120,5 @@ void Epoller::assertInLoopThread() const {
   if (loop)
     loop->assertInLoopThread();
   else
-    LOG(WARN)<<"Epoller::assertInLoopThread"<<adl::endl;
+    LOG(WARN) << "Epoller::assertInLoopThread" << adl::endl;
 }

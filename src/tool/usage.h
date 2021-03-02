@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef USAGE_H
+#define USAGE_H
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -60,5 +60,6 @@
 template <typename To, typename From> inline To implicit_cast(From const &f) {
   return f;
 }
+
 
 #endif

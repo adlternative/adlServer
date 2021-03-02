@@ -1,5 +1,5 @@
 #include "tcpConnection.h"
-#include "../headFile.h"
+#include "../include/headFile.h"
 #include "Channel.h"
 #include "EventLoop.h"
 namespace adl {
@@ -12,6 +12,7 @@ void defaultMessageCallback(const TcpConnectionPtr &conn, netBuffer *buf) {
 }
 /* 默认的连接回调 */
 void defaultConnectionCallback(const TcpConnectionPtr &conn) {
+  unglyTrace(defaultConnectionCallback);
   LOG(INFO) << "connection setup..." << adl::endl;
 }
 
@@ -21,7 +22,7 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
     : loop_(loop), state_(kConnecting), socket_(new Socket(sockfd)),
       channel_(new Channel(loop.lock(), sockfd)), localAddr_(localAddr),
       peerAddr_(peerAddr) {
-
+  unglyTrace(TcpConnection);
   channel_->setReadCallback(std::bind(&TcpConnection::handleRead,
                                       this /* , std::placeholders::_1 */));
   channel_->setWriteCallback(std::bind(&TcpConnection::handleWrite, this));
@@ -32,13 +33,13 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
 }
 
 TcpConnection::~TcpConnection() {
-  LOG(INFO) << "the TcpConnection over" << adl::endl;
+  unglyTrace(TcpConnection);
   INFO_("%s\n", __func__);
   assert(state_ == kDisconnected);
 }
 
 void TcpConnection::send(const void *message, int len) {
-
+  unglyTrace(TcpConnection);
   if (state_ == kConnected) {
     auto subLoop = getLoop();
     if (subLoop) {
@@ -48,7 +49,7 @@ void TcpConnection::send(const void *message, int len) {
   }
 }
 void TcpConnection::shutdown() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   if (state_ == kConnected) {
     setState(kDisconnecting);
     // FIXME: shared_from_this()?
@@ -60,7 +61,7 @@ void TcpConnection::shutdown() {
 }
 
 void TcpConnection::forceClose() {
-  INFO_("%s\n", __func__);
+  unglyTrace(TcpConnection);
   // FIXME: use compare and swap
   if (state_ == kConnected || state_ == kDisconnecting) {
     setState(kDisconnecting);
@@ -98,7 +99,7 @@ void TcpConnection::handleRead(/* timeStamp receiveTime */) {
       /* 如果对端写关闭，我们暂时直接关闭连接 */
       handleClose();
     } else if (n > 0) {
-      // inputBuffer_.debugLenByte(100);
+      // inputBuffer_.debugLenByte(1000);
       /* 如果读到了数据，我们调用消息回调函数 */
       messageCallback_(shared_from_this(), &inputBuffer_);
     } else { /* 出错 */
@@ -307,12 +308,9 @@ void TcpConnection::connectEstablished() {
     subLoop->assertInLoopThread();
     LOG(INFO) << "subLoop(" << &*subLoop << ")get a new connection."
               << "now it have" << subLoop->connectSize() << "connection(s).\n";
-
     assert(state_ == kConnecting);
     setState(kConnected);
-
     channel_->enableReading();
-
     connectionCallback_(shared_from_this());
   }
 }

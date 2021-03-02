@@ -1,6 +1,6 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
-#include "../util.h"
+#include "../tool/usage.h"
 #include <boost/noncopyable.hpp>
 #include <functional>
 #include <memory>

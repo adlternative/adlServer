@@ -1,6 +1,6 @@
 #include "Socket.h"
 #include "../log/Logging.h"
-#include "../util.h"
+#include "../tool/usage.h"
 #include "InetAddress.h"
 #include <cassert>
 #include <errno.h>

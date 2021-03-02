@@ -1,5 +1,5 @@
 #include "Channel.h"
-#include "../util.h"
+#include "../tool/usage.h"
 #include "EventLoop.h"
 #include <poll.h>
 #include <sys/epoll.h>

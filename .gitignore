@@ -42,3 +42,6 @@ a.out
 *.log
 test.cpp
 src/test.cpp
+
+CMakeFiles/
+CMakeCache.txt

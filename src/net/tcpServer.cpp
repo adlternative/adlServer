@@ -1,5 +1,5 @@
 #include "tcpServer.h"
-#include "../headFile.h"
+#include "../include/headFile.h"
 #include "../log/Logging.h"
 #include "Acceptor.h"
 #include "EventLoopThreadPool.h"
@@ -42,6 +42,8 @@ TcpServer::~TcpServer() {
   acceptor开始listen
  */
 void TcpServer::start() {
+  unglyTrace(TcpServer);
+
   LOG(INFO) << "adlServer: " << ip_ << ":" << port_ << adl::endl;
   /* if !started_ -> started_=true */
   if (!started_.load(std::memory_order_relaxed)) {
@@ -66,7 +68,7 @@ void TcpServer::setThreadNum(int numThreads) {
   设置各种回调函数，
   并让subLoop执行连接建立回调函数 */
 void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
-  LOG(INFO) << "TcpServer::newConnection\n";
+  unglyTrace(TcpServer);
   mainLoop_->assertInLoopThread();
   /*根据当前subLoops中连接数量最小的那个subLoop作为
   新连接的ioloop */
@@ -74,9 +76,10 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr) {
   InetAddress localAddr(sock::getLocalAddr(sockfd));
   TcpConnectionPtr conn(
       new TcpConnection(subLoop, sockfd, localAddr, peerAddr));
-  conn->setConnectionCallback(std::move(connectionCallback_));
-  conn->setMessageCallback(std::move(messageCallback_));
-  conn->setWriteCompleteCallback(std::move(writeCompleteCallback_));
+
+  conn->setConnectionCallback(connectionCallback_);
+  conn->setMessageCallback(messageCallback_);
+  conn->setWriteCompleteCallback(writeCompleteCallback_);
   conn->setCloseCallback([this](const adl::TcpConnectionPtr &conn) {
     this->removeConnection(conn);
   });

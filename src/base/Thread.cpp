@@ -27,10 +27,10 @@ public:
   std::promise<void> &p_;
 };
 
-pid_t gettid() {
-  /* 获得/系统内唯一的线程pid */
-  return static_cast<pid_t>(::syscall(SYS_gettid));
-}
+// pid_t gettid() {
+//   /* 获得/系统内唯一的线程pid */
+//   return static_cast<pid_t>(::syscall(SYS_gettid));
+// }
 
 void *runThread(void *arg) {
   threadData *td = (threadData *)arg;

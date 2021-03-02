@@ -1,6 +1,6 @@
 #ifndef NETBUFFER_H
 #define NETBUFFER_H
-#include "../headFile.h"
+#include "../include/headFile.h"
 #include <algorithm>
 #include <assert.h>
 #include <cstdlib>

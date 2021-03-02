@@ -1,5 +1,5 @@
 #include "currentThread.h"
-#include "../headFile.h"
+#include "../include/headFile.h"
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <sys/types.h>

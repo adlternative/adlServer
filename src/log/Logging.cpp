@@ -1,6 +1,6 @@
 #include "Logging.h"
 #include "../base/currentThread.h"
-#include "../util.h"
+#include "../tool/usage.h"
 #include <thread>
 namespace adl {
 

@@ -1,8 +1,8 @@
 #include "asyncLogging.h"
-#include "../util.h"
+#include "../base/timeStamp.h"
+#include "../tool/usage.h"
 #include "Logging.h"
 #include "logFile.h"
-#include "../base/timeStamp.h"
 #include <functional>
 #include <iostream>
 namespace adl {

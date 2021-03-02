@@ -4,8 +4,10 @@ RM = rm -rf
 
 SRC =
 
-SRC += src/reflection.cpp
-# SRC += src/main.cpp
+SRC += src/httpServer.cpp
+SRC += src/tool/util.cpp
+# SRC += src/example/reflection.cpp
+# SRC += src/example/main.cpp
 SRC += src/base/currentThread.cpp
 SRC += src/base/timeStamp.cpp
 SRC += src/log/asyncLogging.cpp
@@ -24,6 +26,7 @@ SRC += src/net/InetAddress.cpp
 SRC += src/net/Socket.cpp
 SRC += src/net/Channel.cpp
 SRC += src/net/netBuffer.cpp
+SRC += src/http/httpParser.cpp
 
 OBJS := $(SRC:.cpp=.o)
 
@@ -36,7 +39,7 @@ all: build
 
 # -fsanitize=address
 build :
-	$(CPP) $(SRC) -lpthread  -o a.out
+	$(CPP) $(SRC) -lpthread  -g -o a.out
 # reflectServer :
 # 	$(CPP) $(SRC) -lpthread  -o a.out
 
