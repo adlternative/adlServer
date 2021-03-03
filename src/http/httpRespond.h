@@ -38,22 +38,23 @@ class httpRespond {
 public:
   enum repState_ { _200Ok, _400BadRequest, _404NotFound, DontKnow };
   static const char *repString[DontKnow];
-  httpRespond(/* std::shared_ptr<httpRequest> request, */
-              const TcpConnectionPtr &conn)
-      : fd_(-1), fileSize_(0), /*  request_(request), */ conn_(conn) {}
-  // httpRespond(string s="404"){}
-  void setState(repState_ state) { state_ = state; }
+  httpRespond(const TcpConnectionPtr &conn) : fd_(-1), size_(0), conn_(conn) {}
+  void setStatusCode(repState_ state) { state_ = state; }
   void setVersion(string v) { version_ = v; }
+  void setBody(string &&body) {
+    body_ = std::move(body);
+    addContentSize(body_.size());
+  }
   void setSourceDir(string dir = "./source/") { sourceDir_ = dir; }
   void setSourceFile(string file) { sourceFile_ = file; }
   void addContentType(string type) { addHeader("Content-Type", type); }
   void addContentSize(int size) {
-    fileSize_ = size;
-    addHeader("Content-Size", std::to_string(size));
+    size_ = size;
+    addHeader("Content-Length", std::to_string(size));
   }
   void addKeepAlive(bool on) {
     if (on)
-      addHeader("Connection", "Keep-Alive");
+      addHeader("Connection", "keep-alive");
     else
       addHeader("Connection", "Close");
   }
@@ -62,37 +63,32 @@ public:
   }
   void linkFileFd(int fd) {
     if (fd < 0) {
-      // LOG(FATAL)
+      // LOG(ERROR)
     }
     fd_ = fd;
   }
   void respond() {
-
     /* version */
+    /* stateCode */
     std::stringstream stream;
     stream << version_ << " " << repString[state_] << "\r\n";
-    // conn_->send(version_.c_str(), version_.size());
-    /* state */
-    // conn_->send(repString[state_], strlen(repString[state_]));
-    // conn_->send("\r\n", 2);
     /* head */
     for (auto &&pai : headMap_) {
       stream << pai.first << ": " << pai.second << "\r\n";
-      // conn_->send(pai.first.c_str(), pai.first.size());
-      // conn_->send("\r\n", 2);
     }
     stream << "\r\n";
-    // conn_->send("\r\n", 2);
     string line_head = stream.str();
     LOG(DEBUG) << line_head << adl::endl;
     conn_->send(line_head.c_str(), line_head.size());
     /* body */
-    if (fd_ > 0 && fileSize_ > 0) {
-      conn_->sendFile(fd_, fileSize_);
+    if (fd_ > 0 && size_ > 0) {
+      conn_->sendFile(fd_, size_);
+    } else if (body_.size() == size_) {
+      conn_->send(body_.c_str(), size_);
     }
   }
 
-  int fileSize_;
+  int size_;        /* bodysize */
   repState_ state_; /*  */
   std::map<string, string> headMap_;
   string version_;
@@ -100,7 +96,8 @@ public:
   string sourceFile_; /* 我们需要发送的文件 */
   std::shared_ptr<httpRequest> request_;
   TcpConnectionPtr conn_;
-  int fd_; /* 需要发送的文件fd */
+  int fd_;      /* 需要发送的文件fd */
+  string body_; /* 如果发送的不是文件，而只是一个body */
 };
 } // namespace http
 } // namespace adl

@@ -28,7 +28,7 @@ TcpServer::TcpServer(const std::shared_ptr<EventLoop> &loop,
 TcpServer::~TcpServer() {
   mainLoop_->assertInLoopThread();
   INFO_("adlServer bye!");
-  LOG(INFO) << "TcpServer over" << adl::endl;
+  LOG(INFO) << "adlServer over" << adl::endl;
   // for (auto &item : connections_) {
   //   TcpConnectionPtr conn(item.second);
   //   item.second.reset();
@@ -59,7 +59,7 @@ void TcpServer::start() {
 }
 
 void TcpServer::setThreadNum(int numThreads) {
-  assert(0 <= numThreads);
+  assert(0 < numThreads);
   threadPool_->setThreadNum(numThreads);
 }
 

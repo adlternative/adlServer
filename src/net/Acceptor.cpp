@@ -46,6 +46,7 @@ void Acceptor::handleRead() {
     connfd = acceptSocket_.accept(&peerAddr);
     if (connfd >= 0) {
       std::string hostport = peerAddr.toIpPort();
+      LOG(DEBUG) << "open connfd: " << connfd << adl::endl;
       LOG(TRACE) << "Accepts of " << hostport << adl::endl;
       if (newConnectionCallback_) {
         newConnectionCallback_(connfd, peerAddr);

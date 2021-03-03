@@ -33,7 +33,7 @@ EventLoop::~EventLoop() {
 /* 在构造函数中将this 生成shared_from_this()会出错，
   二段构造 */
 void EventLoop::init() {
-  INFO_("EventLoop.init\n");
+  INFO_("EventLoop::init(%d)\n", threadId_);
   /* poller 必须先于 channel 初始化 ，
     否则会出错 */
   poller_ = std::make_unique<Epoller>(shared_from_this());
@@ -153,7 +153,7 @@ void EventLoop::handleRead() {
   uint64_t one = 1;
   ssize_t n = sock::read(wakeupFd_, &one, sizeof one);
   if (n != sizeof one) {
-    LOG(ERROR) << "EventLoop::handleRead(wakeup) error" << adl::endl;
+    LOG(ERROR) << "EventLoop::handleRead(use for wakeup) error" << adl::endl;
   }
 }
 

@@ -45,3 +45,5 @@ src/test.cpp
 
 CMakeFiles/
 CMakeCache.txt
+
+adlServer

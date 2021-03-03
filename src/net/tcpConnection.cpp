@@ -243,6 +243,7 @@ void TcpConnection::sendInLoop(const void *message, size_t len, int sendFileFd,
         subLoop->queueInLoop(
             std::bind(writeCompleteCallback_, shared_from_this()));
       }
+      sock::close(sendFileFd);
     } else { /* 出错 */
       nwrote = 0;
       /* OS写缓冲区满 */
@@ -250,7 +251,7 @@ void TcpConnection::sendInLoop(const void *message, size_t len, int sendFileFd,
         // LOG_SYSERR << "TcpConnection::sendInLoop";
         if (errno == EPIPE || errno == ECONNRESET) // FIXME: any others?
         {
-          /* EPIPE说明对端读关闭，该怎么去处理？ */
+          /* EPIPE说明对端读关闭，该怎么去处理？ shutdownWrite?*/
           /* 致命错误 */
           faultError = true;
         }

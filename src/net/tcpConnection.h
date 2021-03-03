@@ -59,9 +59,7 @@ public:
   netBuffer *outputBuffer() { return &outputBuffer_; }
 
   /// Internal use only.
-  void setCloseCallback(CloseCallback &&cb) {
-    closeCallback_ = std::forward<CloseCallback>(cb);
-  }
+  void setCloseCallback(CloseCallback cb) { closeCallback_ = cb; }
 
   void debugBuffer() {
     LOG(DEBUG) << "outputBuffer_:" << adl::endl;
