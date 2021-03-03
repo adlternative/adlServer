@@ -250,6 +250,33 @@ home/adl/adlServer/src/http/httpParser.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/adlServer.dir/build.make CMakeFiles/adlServer.dir/home/adl/adlServer/src/http/httpParser.cpp.s
 .PHONY : home/adl/adlServer/src/http/httpParser.cpp.s
 
+home/adl/adlServer/src/http/httpRespond.o: home/adl/adlServer/src/http/httpRespond.cpp.o
+
+.PHONY : home/adl/adlServer/src/http/httpRespond.o
+
+# target to build an object file
+home/adl/adlServer/src/http/httpRespond.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/adlServer.dir/build.make CMakeFiles/adlServer.dir/home/adl/adlServer/src/http/httpRespond.cpp.o
+.PHONY : home/adl/adlServer/src/http/httpRespond.cpp.o
+
+home/adl/adlServer/src/http/httpRespond.i: home/adl/adlServer/src/http/httpRespond.cpp.i
+
+.PHONY : home/adl/adlServer/src/http/httpRespond.i
+
+# target to preprocess a source file
+home/adl/adlServer/src/http/httpRespond.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/adlServer.dir/build.make CMakeFiles/adlServer.dir/home/adl/adlServer/src/http/httpRespond.cpp.i
+.PHONY : home/adl/adlServer/src/http/httpRespond.cpp.i
+
+home/adl/adlServer/src/http/httpRespond.s: home/adl/adlServer/src/http/httpRespond.cpp.s
+
+.PHONY : home/adl/adlServer/src/http/httpRespond.s
+
+# target to generate assembly for a file
+home/adl/adlServer/src/http/httpRespond.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/adlServer.dir/build.make CMakeFiles/adlServer.dir/home/adl/adlServer/src/http/httpRespond.cpp.s
+.PHONY : home/adl/adlServer/src/http/httpRespond.cpp.s
+
 home/adl/adlServer/src/httpServer.o: home/adl/adlServer/src/httpServer.cpp.o
 
 .PHONY : home/adl/adlServer/src/httpServer.o
@@ -757,6 +784,9 @@ help:
 	@echo "... home/adl/adlServer/src/http/httpParser.o"
 	@echo "... home/adl/adlServer/src/http/httpParser.i"
 	@echo "... home/adl/adlServer/src/http/httpParser.s"
+	@echo "... home/adl/adlServer/src/http/httpRespond.o"
+	@echo "... home/adl/adlServer/src/http/httpRespond.i"
+	@echo "... home/adl/adlServer/src/http/httpRespond.s"
 	@echo "... home/adl/adlServer/src/httpServer.o"
 	@echo "... home/adl/adlServer/src/httpServer.i"
 	@echo "... home/adl/adlServer/src/httpServer.s"

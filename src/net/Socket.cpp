@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <stdio.h> // snprintf
+#include <sys/sendfile.h>
 #include <sys/socket.h>
 #include <sys/uio.h> // readv
 #include <unistd.h>
@@ -221,12 +222,21 @@ ssize_t read(int sockfd, void *buf, size_t count) {
   return ::read(sockfd, buf, count);
 }
 
+/* 通信 */
+ssize_t pread(int sockfd, void *buf, size_t count, off_t off) {
+  return ::pread(sockfd, buf, count, off);
+}
+
 ssize_t write(int sockfd, const void *buf, size_t count) {
   return ::write(sockfd, buf, count);
 }
 
 ssize_t readv(int sockfd, const struct iovec *iov, int iovcnt) {
   return ::readv(sockfd, iov, iovcnt);
+}
+
+ssize_t sendfile(int sockfd, int in_fd, off_t *off, size_t count) {
+  return ::sendfile(sockfd, in_fd, off, count);
 }
 
 int getSocketError(int sockfd) {

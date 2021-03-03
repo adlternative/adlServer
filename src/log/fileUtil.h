@@ -1,6 +1,7 @@
 #ifndef FILEUTIL_H
 #define FILEUTIL_H
 #include <boost/noncopyable.hpp>
+#include <fcntl.h>
 #include <string>
 
 namespace adl {

@@ -29,7 +29,7 @@ public:
   void send(const void *message, int len);
   void send(const string &message);
   // void send(Buffer&& message); // C++11
-
+  void sendFile(int fd, int fileSize);
   void send(netBuffer *message); // this one will swap data
   void shutdown();               // NOT thread safe, no simultaneous calling
   // void shutdownAndForceCloseAfter(double seconds); // NOT thread safe, no
@@ -83,7 +83,8 @@ private:
   void handleError();
   void sendInLoop(string &&message);
   // void sendInLoop(const StringPiece &message);
-  void sendInLoop(const void *message, size_t len);
+  void sendInLoop(const void *message = NULL, size_t len = 0,
+                  int sendFileFd = -1, int sendFileSize = 0);
   void sendInLoop(const char *message, size_t len);
 
   void shutdownWriteInLoop(); /* 关闭写 */

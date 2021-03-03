@@ -65,14 +65,13 @@ public:
   ~netBuffer() { free(buf_); }
   /* 向后写 */
   void append(const char *buf, int len) {
-    LOG(TRACE) << "append" << adl::endl;
+    unglyTrace(netBuffer);
     checkCapcity(len);
     for (int i = 0; i != len; i++) {
       buf_[w_++] = buf[i];
     }
   }
   void append(char *buf, int len) {
-    LOG(TRACE) << "append" << adl::endl;
     checkCapcity(len);
     for (int i = 0; i != len; i++) {
       buf_[w_++] = buf[i];
@@ -118,6 +117,7 @@ public:
     retrieve(len);
     return result;
   }
+  void retrieveAll() { r_ = w_ = 0; }
   string retrieveAllAsString() {
     LOG(TRACE) << "retrieveAllAsString" << adl::endl;
     return retrieveAsString(readable());
@@ -158,7 +158,7 @@ public:
   int getCapcity() { return alloc_; }
   /* 从一个文件描述符(套接字)读取内容 ，
     无阻塞下 ET 模式 得一次读完*/
-  int readFd(int fd, int *savedErrno, bool *closed);
+  int readFd(int fd, int *savedErrno, bool *closed, int sendFileOffset = 0);
   void reset() {
     r_ = 0;
     w_ = 0;

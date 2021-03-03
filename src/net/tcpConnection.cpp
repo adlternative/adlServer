@@ -2,6 +2,7 @@
 #include "../include/headFile.h"
 #include "Channel.h"
 #include "EventLoop.h"
+#include <sys/sendfile.h>
 namespace adl {
 
 /* 默认的消息回调 */
@@ -34,7 +35,6 @@ TcpConnection::TcpConnection(const std::weak_ptr<EventLoop> &loop, int sockfd,
 
 TcpConnection::~TcpConnection() {
   unglyTrace(TcpConnection);
-  INFO_("%s\n", __func__);
   assert(state_ == kDisconnected);
 }
 
@@ -47,6 +47,35 @@ void TcpConnection::send(const void *message, int len) {
           [this, message, len]() { this->sendInLoop(message, len); });
     }
   }
+}
+
+// void TcpConnection::send(const string &message)
+// {
+// }
+
+void TcpConnection::sendFile(int fd, int fileSize) {
+  unglyTrace(TcpConnection);
+  if (fd < 0) {
+    /* DEBUG */
+    return;
+  }
+  if (state_ == kConnected) {
+    auto subLoop = getLoop();
+    if (subLoop) {
+      subLoop->runInLoop(
+          [this, fd, fileSize]() { this->sendInLoop(NULL, 0, fd, fileSize); });
+    }
+  }
+
+  // sendInLoop(fd);
+  // unglyTrace(TcpConnection);
+  // // access();
+  // int fd = xopen(fileName.c_str(), O_RDONLY);
+  // if (fd < 0 && errno == ENFILE) {
+  //   return -1;
+  // }
+  // return fd;
+  // sendfile()
 }
 void TcpConnection::shutdown() {
   unglyTrace(TcpConnection);
@@ -177,7 +206,9 @@ void TcpConnection::handleError() {
 }
 
 /* 在IO loop中发送信息 */
-void TcpConnection::sendInLoop(const void *message, size_t len) {
+void TcpConnection::sendInLoop(const void *message, size_t len, int sendFileFd,
+                               int sendFileSize) {
+
   unglyTrace(TcpConnection);
   auto subLoop = getLoop();
   if (!subLoop)
@@ -195,12 +226,19 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
     我们就可以直接write我们本次想发送的message  */
 
   if (!channel_->isWriting() && outputBuffer_.readable() == 0) {
-
-    nwrote = sock::write(channel_->getFd(), message, len);
+    // sendFile模式
+    if (!message && !len && sendFileFd) {
+      nwrote = ::sendfile(channel_->getFd(), sendFileFd, nullptr, sendFileSize);
+    } else {
+      nwrote = sock::write(channel_->getFd(), message, len);
+    }
     if (nwrote >= 0) {
       LOG(INFO) << "writeSize: " << nwrote << adl::endl;
       /* 写一次，本次信息全写完触发一次写完成事件 */
-      remaining = len - nwrote;
+      if (!message && !len && sendFileFd) {
+        remaining = sendFileSize - nwrote;
+      } else
+        remaining = len - nwrote;
       if (remaining == 0 && writeCompleteCallback_) {
         subLoop->queueInLoop(
             std::bind(writeCompleteCallback_, shared_from_this()));
@@ -219,11 +257,30 @@ void TcpConnection::sendInLoop(const void *message, size_t len) {
       }
     }
   }
-  assert(remaining <= len);
+  assert(!message || remaining <= len);
   if (!faultError && remaining > 0) {
     /* 未发送的数据添加到outputbuffer中  */
-    outputBuffer_.append(static_cast<const char *>(message) + nwrote,
-                         remaining);
+    if (!message && !len && sendFileFd) {
+      int savedErrno;
+      bool writeClosed = false;
+      int n =
+          outputBuffer_.readFd(sendFileFd, &savedErrno, &writeClosed, nwrote);
+      if (writeClosed || n > 0) {
+        // 关闭文件
+        sock::close(sendFileFd);
+        // } else if (n > 0) {
+        // sock::close(sendFileFd);
+      } else { /* 出错 */
+        /* 调用错误回调 */
+        errno = savedErrno;
+        sock::close(sendFileFd);
+        // 文件读错误
+        // LOG
+      }
+
+    } else
+      outputBuffer_.append(static_cast<const char *>(message) + nwrote,
+                           remaining);
     // 关注epollout事件，OS写缓冲区不满，会触发HandleWrite
     if (!channel_->isWriting()) {
       LOG(INFO) << "Os write buffer fulled.So we apply EPOLLOUT" << adl::endl;

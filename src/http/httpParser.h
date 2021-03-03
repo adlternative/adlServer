@@ -36,6 +36,10 @@ public:
   void setVersion(string v) { version_ = v; }
   void setUrl(string u) { url_ = u; }
   void setMethod(Method method) { method_.method_ = method; }
+  string getUrl() { return url_; }
+  string getVersion() { return version_; }
+  Method getMethod() { return method_.method_; }
+
   void debug();
 
 private:
@@ -54,19 +58,50 @@ public:
       // LOG
     }
   }
+  string getValue(string k) {
+    string s;
+    auto it = headMap_.find(k);
+    if (it != headMap_.end())
+      return it->second;
+    return s;
+  }
+  std::pair<string, string> get(string k) {
+    auto it = headMap_.find(k);
+    if (it == headMap_.end())
+      return std::pair<string, string>();
+    return *it;
+  }
+  void debug() {
+    LOG(DEBUG) << "HeadMap: " << adl::endl;
+    for_each(headMap_.begin(), headMap_.end(),
+             [](const std::pair<string, string> &ss) {
+               LOG(DEBUG) << "key: " << ss.first << " value: " << ss.second
+                          << adl::endl;
+             });
+  }
 
 private:
   std::map<string, string> headMap_;
 };
 
 /* 请求消息体 */
-class httpRequestMessageBody {};
+struct httpRequestMessageBody {
+public:
+  void setMessage(const char *message, size_t len) {
+    message_ = string(message, len);
+  }
+  string message_;
+};
 
 /* 请求 */
-class httpRequest {
+struct httpRequest {
 public:
-  httpRequest() = default;
-  void debug() { line_.debug(); }
+  httpRequest() : parseSize_(0) {}
+  void debug() {
+    line_.debug();
+    head_.debug();
+  }
+  int parseSize_;
   httpRequestLine line_;
   httpRequestHead head_;
   httpRequestMessageBody body_;
@@ -76,9 +111,9 @@ class httpParser : boost::noncopyable {
 public:
   /* 总状态机 */
   enum FinnalState {
+    Success_,    /* 成功解析 */
     Failed_,     /* 解析失败 */
     Incomplete_, /* 不完整 需要重新等待解析 */
-    Success_     /* 成功解析 */
   };
 
   /* 行状态机 */
@@ -98,126 +133,11 @@ public:
         processState_(Line_), finalState_(Incomplete_),
         lineState_(LineIncomplete_), request_(new httpRequest()) {}
 
-  LineState requestLineParse() {
-    RequestLineState rlState = Method_;
-    l_end_ = cur_;
-    cur_ = l_beg_;
-    int len = l_end_ - l_beg_;
-    /* 解析Method_ */
-    for (; cur_ != l_end_;) {
-      if (rlState == Method_) {
-        ////DEBUG_("parse\n");
-        if (len >= strlen("GET") && starts_with(buf_ + l_beg_, "GET")) {
-          // ERR_("%d %d %d\n", len, l_beg_, l_end_);/* 16 0 16 */
-          ////DEBUG_("parse\n");
-          request_->line_.setMethod(GET);
-          // DEBUG_("parse\n");
-          cur_ += strlen("GET");
-          // DEBUG_("parse\n");
-        } else if (len >= strlen("POST") &&
-                   starts_with(buf_ + l_beg_, "POST")) {
-          request_->line_.setMethod(POST);
-          cur_ += strlen("POST");
-        } else {
-          if (starts_with(buf_ + l_beg_, "HEAD") &&
-              starts_with(buf_ + l_beg_, "PATCH")) {
-            /* 不支持的方法，返回404? */
-            // LOG()
-            lineState_ = LineBad_;
-            break;
-          } else {
-            /* 错误的请求！ */
-            // LOG()
-            lineState_ = LineBad_;
-            break;
-          }
-        }
-        /* 空格 */
-        if (cur_ == l_end_)
-          break;
-        else if (buf_[cur_++] != ' ') {
-          break;
-        }
-        rlState = Url_;
-        continue;
-      } else if (rlState == Url_) {
-        // DEBUG_("parse\n");
-        /* 寻找下一个空格 */
-        int uBegin = cur_;
-        while (cur_ != l_end_ && buf_[cur_++] != ' ')
-          continue;
-        if (cur_ == l_end_)
-          break;
-        request_->line_.setUrl(string(buf_ + uBegin, cur_ - uBegin));
-        if (cur_ == l_end_)
-          break;
-        else if (buf_[cur_++] != ' ') {
-          break;
-        }
-        rlState = Version_;
-      } else if (rlState == Version_) {
-        DEBUG_("parse\n");
-        printf("version:%s\n", buf_ + cur_);
-
-        if (!strncmp(buf_ + cur_, "HTTP/1.1", l_end_ - cur_) ||
-            !strncmp(buf_ + cur_, "HTTP/1.0", l_end_ - cur_)) {
-          cur_ = l_end_;
-          lineState_ = LineOk_;
-          break;
-        } else {
-          cur_ = l_end_;
-          lineState_ = LineBad_;
-          break;
-        }
-      }
-    }
-    request_->debug();
-
-    return lineState_;
-  }
-  LineState requestHeadParse() { return LineBad_; }
-  LineState requestBodyParse() { return LineBad_; }
+  void requestLineParse();
+  void requestHeadParse();
+  void requestBodyParse(int len);
   std::shared_ptr<httpRequest> getRequest() { return request_; }
-  FinnalState parse() {
-    for (; cur_ != len_;) {
-      lineState_ = LineIncomplete_;
-      /* 寻找本行的\r */
-      while (cur_ != len_ && buf_[cur_++] != '\r')
-        continue;
-      /* 如果 没有遇到 \r 而是遇上结束符号 我们就退出*/
-      if (cur_ == len_)
-        break;
-      /* 那么继续找\n */
-      if (cur_ != len_ && buf_[cur_++] == '\n') {
-        /* get A line  */
-        /* parser from begin to end  */
-        if (processState_ == Line_) {
-          lineState_ = requestLineParse();
-          if (lineState_ == LineBad_) {
-            /* 404 */
-            /*  */
-          } else if (lineState_ == LineOk_) {
-            /* 继续 */
-            processState_ = Head_;
-            continue;
-          } else {
-            finalState_ = Incomplete_;
-            /* 不完整就退出本轮解析  */
-            break;
-          }
-        } else if (processState_ == Head_) {
-          // DEBUG_("parse\n");
-          // requestLineParse();
-        } else if (processState_ == Body_) {
-          // DEBUG_("parse\n");
-          // requestLineParse();
-        }
-      }
-      /* 如果没找到\n */
-      continue;
-    }
-    return finalState_;
-  }
+  FinnalState parse();
 
   // ProcessState
 
@@ -234,7 +154,7 @@ private:
   int l_end_; /* 标记当前行开始 */
   int cur_;   /* 游标, 表示当前指向的位置 */
   const char *buf_;
-  int len_;
+  int len_; /* 数据总长度 */
 };
 } // namespace http
 } // namespace adl

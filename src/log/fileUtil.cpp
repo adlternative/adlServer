@@ -80,6 +80,7 @@ int xopen(const char *path, int oflag, ...) {
       fprintf(stderr, "could not open '%s' for writing\n", path);
     else
       fprintf(stderr, "could not open '%s' for reading\n", path);
+    return fd;
   }
 }
 
