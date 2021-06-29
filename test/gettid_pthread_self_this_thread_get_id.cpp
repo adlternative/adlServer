@@ -17,12 +17,6 @@ void test_tid() {
 }
 
 int main(int argc, char const *argv[]) {
-  std::vector<int> v(10, 10);
-  v.resize(2);
-  for (auto &&i : v) {
-    std::cout << i << std::endl;
-  }
-
   test_tid();
   exit(0);
   {
