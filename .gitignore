@@ -6,7 +6,8 @@
 !*.cc
 !*.h
 !*.hpp
-
+!.clang-format
+!.clang-tidy
 !*.txt
 !*.md
 
