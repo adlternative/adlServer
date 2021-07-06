@@ -1,5 +1,6 @@
-#ifndef ADL_NON_COPYABLE_H
-#define ADL_NON_COPYABLE_H
+#ifndef __NONCOPYABLE_H__
+#define __NONCOPYABLE_H__
+
 namespace adl {
 
 class noncopyable {
@@ -13,4 +14,4 @@ protected:
 };
 } // namespace adl
 
-#endif
+#endif // __NONCOPYABLE_H__
