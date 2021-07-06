@@ -29,13 +29,13 @@ int __attribute__((noinline)) socket_recent() noexcept;
 int get_socket_err(int sockfd) noexcept;
 [[nodiscard]] std::optional<int> socket_init(enum socket_family family,
                                              enum socket_protocol protocol,
-                                             int non_block = false,
-                                             int close_exec = false,
+                                             int non_block = true,
+                                             int close_exec = true,
                                              int *errno_ = nullptr) noexcept;
 
 [[nodiscard]] std::optional<int> socket_init(int &fd, const addrinfo &hint,
-                                             int non_block = false,
-                                             int close_exec = false,
+                                             int non_block = true,
+                                             int close_exec = true,
                                              int *errno_ = nullptr) noexcept;
 
 int socket_set_reuse_addr(int sockfd, bool on = true,
@@ -52,16 +52,16 @@ int socket_bind(int sockfd, const char *ip, short port,
 int socket_listen(int fd, int n = SOMAXCONN, int *errno_ = nullptr) noexcept;
 
 [[nodiscard]] std::optional<int>
-socket_accept(int listen_fd, struct sockaddr *addr, int non_block = false,
-              int close_exec = false, int *errno_ = nullptr) noexcept;
+socket_accept(int listen_fd, struct sockaddr *addr, int non_block = true,
+              int close_exec = true, int *errno_ = nullptr) noexcept;
 
 [[nodiscard]] std::optional<int>
-socket_accept(int listen_fd, struct sockaddr_in *addr, int non_block = false,
-              int close_exec = false, int *errno_ = nullptr) noexcept;
+socket_accept(int listen_fd, struct sockaddr_in *addr, int non_block = true,
+              int close_exec = true, int *errno_ = nullptr) noexcept;
 
 [[nodiscard]] std::optional<int>
-socket_accept(int listen_fd, struct sockaddr_in6 *addr, int non_block = false,
-              int close_exec = false, int *errno_ = nullptr) noexcept;
+socket_accept(int listen_fd, struct sockaddr_in6 *addr, int non_block = true,
+              int close_exec = true, int *errno_ = nullptr) noexcept;
 
 int socket_close(int sockfd, int *errno_ = nullptr) noexcept;
 

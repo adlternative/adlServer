@@ -35,32 +35,108 @@ public:
 
   ~Socket() { this->close(); }
 
-  template <enum socket_family family, enum socket_protocol protocol>
-  static std::unique_ptr<Socket> create_socket(int non_block = false,
-                                               int close_exec = false);
+  template <enum socket_family family = ipv4__,
+            enum socket_protocol protocol = tcp__>
+  static std::unique_ptr<Socket> socket_create(int non_block, int close_exec) {
+    int err;
+
+    auto fd = socket_init(family, protocol, non_block, close_exec, &err);
+    if (!fd) {
+      spdlog::error("socket_create error?!");
+    }
+    decltype(std::make_unique<Socket>(*fd)) sock_ptr{};
+    try {
+      sock_ptr = std::make_unique<Socket>(*fd);
+    } catch (const std::exception &e) {
+      spdlog::error("socket_create error throw exception: {}", e.what());
+    }
+    return sock_ptr;
+  }
 
   int get_fd() noexcept { return socket_fd_; }
 
-private:
+protected:
   int socket_fd_;
 };
 
-template <enum socket_family family, enum socket_protocol protocol>
-std::unique_ptr<Socket> Socket::create_socket(int non_block, int close_exec) {
-  int err;
+class ListenSocket : public Socket {
+public:
+  ListenSocket() : Socket() {}
+  explicit ListenSocket(int socket_fd) : Socket(socket_fd) {}
 
-  auto fd = socket_init(family, protocol, non_block, close_exec, &err);
-  if (!fd) {
-    spdlog::error("create_socket error?!");
+  template <enum socket_family family = ipv4__,
+            enum socket_protocol protocol = tcp__>
+  static std::unique_ptr<Socket> socket_create(int non_block, int close_exec) {
+    int err;
+
+    auto fd = socket_init(family, protocol, non_block, close_exec, &err);
+    if (!fd) {
+      spdlog::error("socket_create error?!");
+    }
+    decltype(std::make_unique<Socket>(*fd)) sock_ptr{};
+    try {
+      sock_ptr = std::make_unique<Socket>(*fd);
+    } catch (const std::exception &e) {
+      spdlog::error("socket_create error throw exception: {}", e.what());
+    }
+    return sock_ptr;
   }
-  decltype(std::make_unique<Socket>(*fd)) sock_ptr;
-  try {
-    sock_ptr = std::make_unique<Socket>(*fd);
-  } catch (const std::exception &e) {
-    spdlog::error("create_socket error throw exception: {}", e.what());
+
+  ListenSocket &reuse_addr(int on = true) {
+    int err;
+    if (socket_set_reuse_addr(socket_fd_, true, &err)) {
+      spdlog::error("socket_set_reuse_addr err: {}", strerror(err));
+    }
+    return *this;
   }
-  return sock_ptr;
-}
+  ListenSocket &reuse_port(int on = true) {
+    int err = 0;
+    if (socket_set_reuse_port(socket_fd_, true, &err)) {
+      spdlog::critical("socket_set_reuse_port err: {}", strerror(err));
+    }
+    return *this;
+  }
+  ListenSocket &bind(const char *ip, short port, enum socket_family family) {
+    int err = 0;
+    if (socket_bind(socket_fd_, ip, port, family, &err)) {
+      spdlog::critical("socket_bind err: {}", strerror(err));
+    }
+    return *this;
+  }
+  ListenSocket &bind(const struct sockaddr *addr, enum socket_family family) {
+    int err = 0;
+    if (socket_bind(socket_fd_, addr, family, &err)) {
+      spdlog::critical("socket_bind err: {}", strerror(err));
+    }
+    return *this;
+  }
+  ListenSocket &listen() {
+    int err = 0;
+    if (socket_listen(socket_fd_, SOMAXCONN, &err)) {
+      spdlog::critical("socket_bind err: {}", strerror(err));
+    }
+    return *this;
+  }
+
+  template <enum socket_family family = ipv4__,
+            enum socket_protocol protocol = tcp__>
+  static std::unique_ptr<ListenSocket> listen_socket_create(int non_block,
+                                                            int close_exec) {
+    int err;
+
+    auto fd = socket_init(family, protocol, non_block, close_exec, &err);
+    if (!fd) {
+      spdlog::error("socket_create error?!");
+    }
+    decltype(std::make_unique<ListenSocket>(*fd)) sock_ptr{};
+    try {
+      sock_ptr = std::make_unique<ListenSocket>(*fd);
+    } catch (const std::exception &e) {
+      spdlog::error("socket_create error throw exception: {}", e.what());
+    }
+    return sock_ptr;
+  }
+};
 
 } // namespace socket
 } // namespace adl
