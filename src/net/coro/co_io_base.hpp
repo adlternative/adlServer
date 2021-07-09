@@ -38,7 +38,7 @@ struct co_epoll;
 
 struct io_work : io_base {
   explicit io_work(co_epoll &io_service);
-  std::coroutine_handle<void> task_{};
+  // std::coroutine_handle<void> task_{};
   co_epoll &io_service_;
   io_buffer_t buffer_{};
 

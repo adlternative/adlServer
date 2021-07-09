@@ -16,7 +16,7 @@ namespace socket {
 class Socket : noncopyable {
 public:
   Socket() : socket_fd_(-1) {}
-  explicit Socket(int socket_fd) : socket_fd_(socket_fd) {}
+  explicit Socket(int socket_fd) noexcept : socket_fd_(socket_fd) {}
   Socket(Socket &&s) noexcept : socket_fd_(s.socket_fd_) {}
   Socket &operator=(Socket &&s) noexcept {
     this->socket_fd_ = s.socket_fd_;
@@ -33,7 +33,7 @@ public:
     }
   }
 
-  ~Socket() { this->close(); }
+  ~Socket() noexcept { this->close(); }
 
   template <enum socket_family family = ipv4__,
             enum socket_protocol protocol = tcp__>
@@ -62,20 +62,19 @@ protected:
 class ListenSocket : public Socket {
 public:
   ListenSocket() : Socket() {}
-  explicit ListenSocket(int socket_fd) : Socket(socket_fd) {}
-
-  template <enum socket_family family = ipv4__,
-            enum socket_protocol protocol = tcp__>
-  static std::unique_ptr<Socket> socket_create(int non_block, int close_exec) {
+  explicit ListenSocket(int socket_fd) noexcept : Socket(socket_fd) {}
+  template <enum socket_family family = ipv4__>
+  static std::unique_ptr<ListenSocket> listen_socket_create(int non_block,
+                                                            int close_exec) {
     int err;
 
-    auto fd = socket_init(family, protocol, non_block, close_exec, &err);
+    auto fd = socket_init(family, tcp__, non_block, close_exec, &err);
     if (!fd) {
       spdlog::error("socket_create error?!");
     }
-    decltype(std::make_unique<Socket>(*fd)) sock_ptr{};
+    decltype(std::make_unique<ListenSocket>(*fd)) sock_ptr{};
     try {
-      sock_ptr = std::make_unique<Socket>(*fd);
+      sock_ptr = std::make_unique<ListenSocket>(*fd);
     } catch (const std::exception &e) {
       spdlog::error("socket_create error throw exception: {}", e.what());
     }
@@ -117,25 +116,25 @@ public:
     }
     return *this;
   }
+};
 
+class ConnectSocket : public Socket {
+public:
+  ConnectSocket() noexcept : Socket() {}
+  explicit ConnectSocket(int socket_fd) noexcept : Socket(socket_fd) {}
   template <enum socket_family family = ipv4__,
             enum socket_protocol protocol = tcp__>
-  static std::unique_ptr<ListenSocket> listen_socket_create(int non_block,
-                                                            int close_exec) {
-    int err;
-
-    auto fd = socket_init(family, protocol, non_block, close_exec, &err);
-    if (!fd) {
-      spdlog::error("socket_create error?!");
-    }
-    decltype(std::make_unique<ListenSocket>(*fd)) sock_ptr{};
+  static std::unique_ptr<ConnectSocket> connect_socket_create(int fd) {
+    decltype(std::make_unique<ConnectSocket>(fd)) sock_ptr{};
     try {
-      sock_ptr = std::make_unique<ListenSocket>(*fd);
+      sock_ptr = std::make_unique<ConnectSocket>(fd);
     } catch (const std::exception &e) {
       spdlog::error("socket_create error throw exception: {}", e.what());
     }
     return sock_ptr;
   }
+  /* read */
+  /* write */
 };
 
 } // namespace socket

@@ -63,7 +63,8 @@ int socket_accept(int ln, int &fd) noexcept {
   // fd = ::accept(ln, nullptr, nullptr);
   return errno;
 }
-
+/* g++ co_echo_service.cpp co_io_recv.cpp co_io_send.cpp co_epoll.cpp
+co_io_base.cpp -std=c++2a -lfmt */
 int main(int argc, char const *argv[]) {
   addrinfo hint{};
   hint.ai_family = AF_INET;

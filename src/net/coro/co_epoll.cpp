@@ -10,12 +10,12 @@ void co_epoll::run() {
 
   while (!stopped) {
     try {
-      cnt = loop(epoll_events.data(), epoll_events.size(), wait_ms_);
+      cnt = loop(epoll_events_.data(), epoll_events_.size(), wait_ms_);
     } catch (...) {
     }
     for (auto i = 0; i != cnt; i++) {
       try {
-        auto &ee = epoll_events[i];
+        auto &ee = epoll_events_[i];
         /* 连接指针 */
         // coroutine_handle<>::from_address(ee.data.ptr);
         auto co = std::coroutine_handle<void>::from_address(ee.data.ptr);
@@ -33,11 +33,11 @@ void co_epoll::run() {
       }
     }
 
-    if (cnt >= epoll_events.size()) {
-      epoll_events.resize(cnt * 2);
+    if (cnt >= epoll_events_.size()) {
+      epoll_events_.resize(cnt * 2);
     }
-    if (cnt <= epoll_events.size() / 5) {
-      epoll_events.resize(cnt / 2);
+    if (cnt <= epoll_events_.size() / 5) {
+      epoll_events_.resize(cnt / 2);
     }
   }
 }
