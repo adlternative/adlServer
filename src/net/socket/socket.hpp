@@ -6,7 +6,9 @@
 #include <memory>
 #include <stdexcept>
 
+#ifndef SPDLOG_FMT_EXTERNAL
 #define SPDLOG_FMT_EXTERNAL
+#endif
 #include <spdlog/spdlog.h>
 
 namespace adl {
@@ -112,7 +114,7 @@ public:
   ListenSocket &listen() {
     int err = 0;
     if (socket_listen(socket_fd_, SOMAXCONN, &err)) {
-      spdlog::critical("socket_bind err: {}", strerror(err));
+      spdlog::critical("socket_listen err: {}", strerror(err));
     }
     return *this;
   }
@@ -133,8 +135,45 @@ public:
     }
     return sock_ptr;
   }
-  /* read */
-  /* write */
+
+  int read(int sockfd, void *buf, size_t len) {
+    int err = 0;
+    int ret = 0;
+    for (;;) {
+      ret = socket_read(socket_fd_, buf, len, &err);
+      if (ret < 0) {
+        if (err == EINTR) {
+          continue;
+        }
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+          spdlog::error("socket_read err: {}", strerror(err));
+        }
+      }
+      break;
+    }
+    return ret;
+  }
+
+  int write(int sockfd, void *buf, size_t len) {
+    int err = 0;
+    int ret = 0;
+    for (;;) {
+      ret = socket_write(socket_fd_, buf, len, &err);
+      if (ret < 0) {
+        if (err == EINTR) {
+          continue;
+        }
+        if (errno == EPIPE) {
+          spdlog::info("peer close!");
+        }
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+          spdlog::error("socket_write err: {}", strerror(err));
+        }
+      }
+      break;
+    }
+    return ret;
+  }
 };
 
 } // namespace socket

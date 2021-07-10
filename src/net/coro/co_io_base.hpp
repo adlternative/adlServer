@@ -1,22 +1,6 @@
 #ifndef __CO_IO_BASE_H__
 #define __CO_IO_BASE_H__
 
-#ifndef __cpp_impl_coroutine
-#define __cpp_impl_coroutine true
-#endif
-
-// #if __cplusplus < 202002L
-// #undef __cplusplus
-// #define __cplusplus 202002L
-// #endif
-
-#ifdef __cpp_lib_concepts
-#undef __cpp_lib_concepts
-#define __cpp_lib_concepts 1
-#else
-#define __cpp_lib_concepts 1
-#endif
-
 #include <coroutine>
 #include <span>
 #include <stdint.h>

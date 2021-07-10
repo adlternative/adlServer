@@ -1,11 +1,6 @@
 #ifndef __SOCKET_WRAP_H__
 #define __SOCKET_WRAP_H__
 
-#if __cplusplus < 202002L
-#undef __cplusplus
-#define __cplusplus 202002L
-#endif
-
 #include <arpa/inet.h>
 #include <cerrno>
 #include <fcntl.h>
@@ -71,6 +66,8 @@ int socket_shutdown_write(int sockfd, int *errno_ = nullptr) noexcept;
 
 int socket_shutdown_both(int sockfd, int *errno_ = nullptr) noexcept;
 
+int socket_read(int sockfd, void *buf, size_t len, int *errno_ = nullptr);
+int socket_write(int sockfd, void *buf, size_t len, int *errno_);
 } // namespace socket
 } // namespace adl
 

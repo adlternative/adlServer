@@ -253,6 +253,24 @@ int socket_shutdown_both(int sockfd, int *errno_) noexcept {
   return ret;
 }
 
+int socket_read(int sockfd, void *buf, size_t len, int *errno_) {
+  int ret;
+  ret = ::read(sockfd, buf, len);
+  if (ret < 0 && errno_) {
+    *errno_ = errno;
+  }
+  return ret;
+}
+
+int socket_write(int sockfd, void *buf, size_t len, int *errno_) {
+  int ret;
+  ret = ::write(sockfd, buf, len);
+  if (ret < 0 && errno_) {
+    *errno_ = errno;
+  }
+  return ret;
+}
+
 } // namespace socket
 
 } // namespace adl
